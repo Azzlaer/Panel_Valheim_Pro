@@ -57,6 +57,95 @@ switch ($action) {
     // SERVERS: start/stop/savejson + status
     // -------------------------------------------------
     
+	case 'alert_create': {
+    check_csrf_if_present();
+
+    $serverId = intval($_POST['server_id'] ?? 0);
+    $command  = trim($_POST['command'] ?? '');
+    $interval = intval($_POST['interval'] ?? 0);
+    $repeats  = intval($_POST['repeats'] ?? 1);
+
+    if ($serverId <= 0) out(['ok'=>false,'error'=>'ID de servidor inválido']);
+    if ($command === '') out(['ok'=>false,'error'=>'Comando vacío']);
+    if ($interval <= 0) out(['ok'=>false,'error'=>'Intervalo inválido']);
+    if ($repeats < 1) out(['ok'=>false,'error'=>'Repeticiones inválidas']);
+    if (!file_exists(SERVERS_JSON)) out(['ok'=>false,'error'=>'servers.json no existe']);
+
+    $servers = json_decode(file_get_contents(SERVERS_JSON), true);
+    if (!is_array($servers)) out(['ok'=>false,'error'=>'servers.json inválido']);
+    $found = null;
+    foreach ($servers as $s) { if (intval($s['id']) === $serverId) { $found = $s; break; } }
+    if (!$found) out(['ok'=>false,'error'=>'Servidor no encontrado']);
+
+    $alertsFile = __DIR__ . DIRECTORY_SEPARATOR . 'alerts.json';
+    if (!file_exists($alertsFile)) file_put_contents($alertsFile, '[]');
+
+    $jobs = json_decode(file_get_contents($alertsFile), true);
+    if (!is_array($jobs)) $jobs = [];
+
+    $now = time();
+    $id  = 'alrt_' . $now . '_' . substr(bin2hex(random_bytes(3)), 0, 6);
+
+    $jobs[] = [
+        'id'            => $id,
+        'server_id'     => $serverId,
+        'command'       => $command,
+        'interval'      => $interval,
+        'repeats_total' => $repeats,
+        'repeats_left'  => $repeats,
+        'next_run_ts'   => $now + $interval, // primera ejecución en un intervalo
+        'status'        => 'active',
+        'created_at'    => $now,
+        'last_run_ts'   => null
+    ];
+
+    if (file_put_contents($alertsFile, json_encode($jobs, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE)) === false) {
+        out(['ok'=>false,'error'=>'No se pudo escribir alerts.json']);
+    }
+    out(['ok'=>true, 'id'=>$id]);
+}
+
+case 'alerts_list': {
+    $alertsFile = __DIR__ . DIRECTORY_SEPARATOR . 'alerts.json';
+    if (!file_exists($alertsFile)) out(['ok'=>true, 'items'=>[]]);
+
+    $jobs = json_decode(file_get_contents($alertsFile), true);
+    if (!is_array($jobs)) $jobs = [];
+    // Puedes filtrar/ordenar aquí si quieres
+    out(['ok'=>true, 'items'=>$jobs]);
+}
+
+case 'alert_cancel': {
+    check_csrf_if_present();
+
+    $id = trim($_POST['id'] ?? $_GET['id'] ?? '');
+    if ($id === '') out(['ok'=>false,'error'=>'ID vacío']);
+
+    $alertsFile = __DIR__ . DIRECTORY_SEPARATOR . 'alerts.json';
+    if (!file_exists($alertsFile)) out(['ok'=>false,'error'=>'alerts.json no existe']);
+
+    $jobs = json_decode(file_get_contents($alertsFile), true);
+    if (!is_array($jobs)) $jobs = [];
+
+    $found = false;
+    foreach ($jobs as &$j) {
+        if ($j['id'] === $id) {
+            $j['status'] = 'canceled';
+            $found = true;
+            break;
+        }
+    }
+    unset($j);
+
+    if (!$found) out(['ok'=>false,'error'=>'Alerta no encontrada']);
+
+    if (file_put_contents($alertsFile, json_encode($jobs, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE)) === false) {
+        out(['ok'=>false,'error'=>'No se pudo actualizar alerts.json']);
+    }
+    out(['ok'=>true]);
+}
+
+
 	case 'schedule_alert': {
     check_csrf_if_present();
 
