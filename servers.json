@@ -1,0 +1,8 @@
+[
+  {
+    "id": 1,
+    "name": "Servidor Principal",
+    "path": "C:\\Servidores\\Steam\\steamapps\\common\\Valheim dedicated server\\valheim_server.exe",
+    "params": "-nographics -batchmode -name \"LatinBattle.com\" -port 2456 -world \"World02\" -password \"32767\" -crossplay -savedir \"C:\\Servidores\\Steam\\steamapps\\common\\Valheim dedicated server\\server01\" -public 1 -logFile \"C:\\Servidores\\Steam\\steamapps\\common\\Valheim dedicated server\\server1.txt\" -saveinterval 1800 -preset normal -modifier combat veryhard -modifier resources muchmore -modifier raids muchmore -setkey playerevents -setkey fire"
+  }
+]
