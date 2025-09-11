@@ -2,6 +2,19 @@
 
 Panel de administracion web para un servidor dedicado de **Valheim** con soporte para RCON, listas de usuarios, alertas programadas y mas.
 
+#  IMAGENES
+
+!(https://github.com/Azzlaer/Panel_Valheim_Pro/blob/main/screens/1.png)
+!(https://github.com/Azzlaer/Panel_Valheim_Pro/blob/main/screens/2.png)
+!(https://github.com/Azzlaer/Panel_Valheim_Pro/blob/main/screens/3.png)
+!(https://github.com/Azzlaer/Panel_Valheim_Pro/blob/main/screens/4.png)
+!(https://github.com/Azzlaer/Panel_Valheim_Pro/blob/main/screens/5.png)
+!(https://github.com/Azzlaer/Panel_Valheim_Pro/blob/main/screens/6.png)
+!(https://github.com/Azzlaer/Panel_Valheim_Pro/blob/main/screens/7.png)
+!(https://github.com/Azzlaer/Panel_Valheim_Pro/blob/main/screens/8.png)
+!(https://github.com/Azzlaer/Panel_Valheim_Pro/blob/main/screens/9.png)
+!(https://github.com/Azzlaer/Panel_Valheim_Pro/blob/main/screens/10.png)
+
 ## Caracteristicas principales
 
 - **Autenticacion**  
