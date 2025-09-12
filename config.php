@@ -11,6 +11,17 @@ define('ADMIN_PASS', '35027595');  // Contraseña de login
 // RUTAS DEL SERVIDOR
 // =====================
 
+// Carpeta de backups (puede estar dentro del proyecto o en otra unidad)
+define('BACKUP_DIR', __DIR__ . '/backups'); 
+if (!is_dir(BACKUP_DIR)) {
+    mkdir(BACKUP_DIR, 0777, true);
+}
+
+
+// Define carpeta de Mundos de Valheim (comumente esta en %AppData% 
+// pero yo modifique el arranque del servidor para alojarlo en la misma carpeta donde se ejecuta el servidor
+define('WORLDS_DIR', 'C:\\Servidores\\Steam\\steamapps\\common\\Valheim dedicated server\\server01\\worlds_local');
+
 // Ejecutable del servidor Valheim
 define('VALHEIM_EXE', 'valheim_server.exe');
 
