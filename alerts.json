@@ -7,20 +7,8 @@
         "repeats_total": 1,
         "repeats_left": 1,
         "next_run_ts": 1757570871,
-        "status": "canceled",
-        "created_at": 1757569071,
-        "last_run_ts": null
-    },
-    {
-        "id": "alrt_1757575024_fa7ee0",
-        "server_id": 1,
-        "command": "showMessage Unete a nuestro discord para jugar - https:\/\/discord.gg\/mvczduBBVP",
-        "interval": 1800,
-        "repeats_total": 9999,
-        "repeats_left": 9999,
-        "next_run_ts": 1757576824,
         "status": "active",
-        "created_at": 1757575024,
+        "created_at": 1757569071,
         "last_run_ts": null
     }
 ]

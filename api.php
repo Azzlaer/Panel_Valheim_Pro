@@ -53,10 +53,106 @@ $action = $_GET['action'] ?? '';
 // Router
 // =====================
 switch ($action) {
+    
+	    // -------------------------------------------------
+    // MAPAS worlds_local
     // -------------------------------------------------
+    case 'upload_map': {
+        if (empty($_FILES['mapFile']) || $_FILES['mapFile']['error'] !== UPLOAD_ERR_OK) {
+            out(['ok'=>false,'error'=>'Error de subida']);
+        }
+        $allowed = ['fwl','db','old'];
+        $ext = strtolower(pathinfo($_FILES['mapFile']['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext,$allowed)) out(['ok'=>false,'error'=>'Extensión no permitida']);
+        $dest = rtrim(WORLDS_DIR,'\\/') . DIRECTORY_SEPARATOR . basename($_FILES['mapFile']['name']);
+        if (!move_uploaded_file($_FILES['mapFile']['tmp_name'], $dest))
+            out(['ok'=>false,'error'=>'No se pudo mover el archivo']);
+        out(['ok'=>true]);
+    }
+
+    case 'list_maps': {
+        $dir = realpath(WORLDS_DIR);
+        if (!$dir || !is_dir($dir)) out(['ok'=>false,'error'=>'Directorio inválido']);
+        $items = [];
+        foreach (glob($dir.'/*.{fwl,db,old}', GLOB_BRACE) as $f) {
+            $items[] = [
+                'name'=>basename($f),
+                'size_mb'=>filesize($f)/1048576,
+                'ext'=>strtolower(pathinfo($f, PATHINFO_EXTENSION))
+            ];
+        }
+        out(['ok'=>true,'items'=>$items]);
+    }
+
+    case 'delete_map': {
+        $file = basename($_GET['file'] ?? '');
+        if ($file === '') out(['ok'=>false,'error'=>'Archivo no especificado']);
+        $target = rtrim(WORLDS_DIR,'\\/') . DIRECTORY_SEPARATOR . $file;
+        if (!is_file($target)) out(['ok'=>false,'error'=>'No encontrado']);
+        if (!unlink($target)) out(['ok'=>false,'error'=>'No se pudo eliminar']);
+        out(['ok'=>true]);
+    }
+
+	
+	
+	
+	// -------------------------------------------------
+    // BACKUPS worlds_local
+    // -------------------------------------------------
+    case 'create_backup': {
+        $src = realpath(WORLDS_DIR);
+        if(!$src || !is_dir($src)) out(['ok'=>false,'error'=>'Directorio worlds_local inválido']);
+
+        $backupDir = __DIR__ . '/backups';
+        if(!is_dir($backupDir)) mkdir($backupDir,0777,true);
+
+        $fname = 'worlds_backup_'.date('Ymd_His').'.zip';
+        $zipPath = $backupDir . '/' . $fname;
+
+        $zip = new ZipArchive();
+        if($zip->open($zipPath, ZipArchive::CREATE)!==TRUE){
+            out(['ok'=>false,'error'=>'No se pudo crear ZIP']);
+        }
+        $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($src, FilesystemIterator::SKIP_DOTS));
+        foreach($it as $file){
+            $path = $file->getRealPath();
+            $rel  = substr($path, strlen($src)+1);
+            $zip->addFile($path, $rel);
+        }
+        $zip->close();
+        out(['ok'=>true,'file'=>$fname]);
+    }
+
+    case 'list_backups': {
+        $dir = __DIR__ . '/backups';
+        if(!is_dir($dir)) out(['ok'=>true,'items'=>[]]);
+        $files = glob($dir.'/*.zip');
+        $items=[];
+        foreach($files as $f){
+            $items[]=[
+                'name'=>basename($f),
+                'size_mb'=>filesize($f)/1048576,
+                'mtime'=>date('Y-m-d H:i:s',filemtime($f))
+            ];
+        }
+        out(['ok'=>true,'items'=>$items]);
+    }
+
+    case 'delete_backup': {
+        $file = basename($_GET['file'] ?? '');
+        if($file==='') out(['ok'=>false,'error'=>'Archivo no especificado']);
+        $path = __DIR__ . '/backups/' . $file;
+        if(!is_file($path)) out(['ok'=>false,'error'=>'No existe']);
+        if(!unlink($path)) out(['ok'=>false,'error'=>'No se pudo eliminar']);
+        out(['ok'=>true]);
+    }
+
+	
+	
+	// -------------------------------------------------
     // SERVERS: start/stop/savejson + status
     // -------------------------------------------------
-    
+		
 	case 'alert_create': {
     check_csrf_if_present();
 
