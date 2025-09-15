@@ -107,14 +107,19 @@ function serverOp(op, id){
 }
 
 function openServersJsonEditor(){
-  fetch('../servers.json')
-    .then(r=>r.text())
-    .then(txt=>{
-      document.getElementById('serversJsonText').value = txt;
-      new bootstrap.Modal(document.getElementById('serversJsonModal')).show();
+  fetch('api.php?action=get_servers_json')
+    .then(r => r.json())
+    .then(j => {
+      if (j.ok) {
+        document.getElementById('serversJsonText').value = j.content;
+        new bootstrap.Modal(document.getElementById('serversJsonModal')).show();
+      } else {
+        alert('⚠️ ' + (j.error || 'Error al cargar servers.json'));
+      }
     })
-    .catch(()=>alert('⚠️ No se pudo abrir servers.json'));
+    .catch(()=>alert('⚠️ Error de red'));
 }
+
 
 function saveServersJson(){
   const content = document.getElementById('serversJsonText').value;

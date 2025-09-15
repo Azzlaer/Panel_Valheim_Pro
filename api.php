@@ -54,7 +54,14 @@ $action = $_GET['action'] ?? '';
 // =====================
 switch ($action) {
     
-	    // -------------------------------------------------
+	case 'get_servers_json': {
+    if (!file_exists(SERVERS_JSON)) out(['ok'=>false,'error'=>'No existe servers.json']);
+    $data = file_get_contents(SERVERS_JSON);
+    out(['ok'=>true, 'content'=>$data]);
+}
+	
+	
+	// -------------------------------------------------
     // MAPAS worlds_local
     // -------------------------------------------------
     case 'upload_map': {
