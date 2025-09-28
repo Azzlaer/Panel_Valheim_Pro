@@ -1,0 +1,48 @@
+plugins {
+    id 'java'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+}
+
+group 'net.kakoen.valheim'
+version '1.1.4-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+dependencies {
+    implementation project(':valheim-save-tools-lib')
+    implementation group: 'org.slf4j', name: 'slf4j-simple', version: '2.0.13'
+    implementation group: 'commons-cli', name: 'commons-cli', version: '1.8.0'
+
+    compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.32'
+    annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.32'
+
+    testCompileOnly group: 'org.projectlombok', name: 'lombok', version: '1.18.32'
+    testAnnotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.32'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+jar {
+    finalizedBy shadowJar
+    manifest {
+        attributes 'Main-Class': 'net.kakoen.valheim.cli.SaveToolsCLI'
+    }
+}
+
+shadowJar {
+    from 'simplelogger.properties'
+    archiveFileName.set("${project.name}.jar")
+}

@@ -11,6 +11,10 @@ define('ADMIN_PASS', '35027595');  // Contraseña de login
 // RUTAS DEL SERVIDOR
 // =====================
 
+// Número máximo de líneas de log a mostrar (ej. 2000)
+define('LOG_MAX_LINES', 50);
+
+
 // Carpeta de mundos locales
 define('WORLDS_DIR', 'C:\\Servidores\\Steam\\steamapps\\common\\Valheim dedicated server\\server01\\worlds_local');
 

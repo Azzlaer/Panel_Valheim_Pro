@@ -10,8 +10,14 @@ if (empty($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     <h2>📜 Visor de Logs</h2>
 
     <div class="mb-3 d-flex gap-2">
-        <button class="btn btn-primary" onclick="loadLog('server')">📖 Log del Servidor</button>
-        <button class="btn btn-warning" onclick="loadLog('steamcmd')">⚙️ Log de SteamCMD</button>
+        <div class="mb-3 d-flex gap-2">
+    <button class="btn btn-primary" onclick="loadLog('server')">📖 Log del Servidor</button>
+    <button class="btn btn-warning" onclick="loadLog('steamcmd')">⚙️ Log de SteamCMD</button>
+    <button class="btn btn-danger ms-auto" onclick="clearLog()" id="clearBtn" disabled>🧹 Limpiar Log</button>
+</div>
+
+</div>
+
         <button class="btn btn-outline-light ms-auto" onclick="toggleAutoscroll()" id="autoBtn">🔽 Autoscroll: ON</button>
     </div>
 
@@ -19,47 +25,60 @@ if (empty($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 </div>
 
 <script>
+let currentLog = null;
 let logInterval = null;
 let autoScroll = true;
 
 function toggleAutoscroll(){
   autoScroll = !autoScroll;
-  document.getElementById('autoBtn').textContent = '🔽 Autoscroll: ' + (autoScroll ? 'ON' : 'OFF');
+  document.getElementById('autoBtn').textContent =
+    '🔽 Autoscroll: ' + (autoScroll ? 'ON' : 'OFF');
 }
 
-function loadLog(type) {
-    clearInterval(logInterval);
-    const box = document.getElementById("logContent");
-    box.textContent = "Cargando " + type + "...";
+function loadLog(type){
+  currentLog = type;
+  document.getElementById('clearBtn').disabled = false;
+  clearInterval(logInterval);
+  const box = document.getElementById('logContent');
+  box.textContent = 'Cargando ' + type + '...';
 
-    function fetchLog() {
-        fetch("api.php?action=view_log&file=" + encodeURIComponent(type), {
-            credentials: 'same-origin'
-        })
-        .then(async r => {
-            const txt = await r.text();
-            // El API devuelve JSON; intentamos parsear para mostrar errores reales
-            try {
-                const j = JSON.parse(txt);
-                if (!j.ok) {
-                    box.textContent = "❌ " + (j.error || "Error desconocido");
-                    return;
-                }
-                box.textContent = j.content || '';
-            } catch(e) {
-                // Si no es JSON, mostramos crudo (por si cambió el API)
-                console.warn('Respuesta no-JSON de api.php?action=view_log:', txt);
-                box.textContent = txt;
-            }
-            if (autoScroll) box.scrollTop = box.scrollHeight;
-        })
-        .catch(err => {
-            console.error('Error leyendo log:', err);
-            box.textContent = "⚠️ Error leyendo log.";
-        });
-    }
+  function fetchLog(){
+    fetch('api.php?action=view_log&file=' + encodeURIComponent(type))
+      .then(r=>r.json())
+      .then(j=>{
+        if(!j.ok) { box.textContent = '❌ ' + (j.error||'Error'); return; }
+        box.textContent = j.content;
+        if(autoScroll) box.scrollTop = box.scrollHeight;
+      })
+      .catch(()=> box.textContent = '⚠️ Error leyendo log');
+  }
 
-    fetchLog();
-    logInterval = setInterval(fetchLog, 3000);
+  fetchLog();
+  logInterval = setInterval(fetchLog, 3000);
 }
+
+function clearLog(){
+  if(!currentLog) return;
+  if(!confirm('¿Vaciar el log '+currentLog+'?')) return;
+
+  fetch('api.php?action=clear_log', {
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body: 'file=' + encodeURIComponent(currentLog)
+  })
+  .then(r=>r.json())
+  .then(j=>{
+      if(j.ok){
+          alert('✅ Log limpiado');
+          document.getElementById('logContent').textContent = '';
+      }else{
+          alert('❌ ' + (j.error||'Error'));
+      }
+  })
+  .catch(()=>alert('⚠️ Error de red al limpiar'));
+}
+
+
 </script>
+
+

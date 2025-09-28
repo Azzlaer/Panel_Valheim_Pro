@@ -28,17 +28,18 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
       <h3 class="text-light mb-4">⚔️ Panel</h3>
       <div class="nav flex-column nav-pills">
         <a href="#" class="nav-link active" data-section="pages/servers">🖥️ Servidores</a>
-		<a href="#" class="nav-link" data-section="pages/backups">🗂️ Respaldos</a>
-		<a href="#" class="nav-link" data-section="pages/maps">🗺️ Mapas</a>
-        <a href="#" class="nav-link" data-section="pages/plugins">📊 Archivos DB</a>
+        <a href="#" class="nav-link" data-section="pages/backups">🗂️ Respaldos</a>
+        <a href="#" class="nav-link" data-section="pages/maps">🗺️ Mapas</a>
+		<a href="#" class="nav-link" data-section="pages/fwl_editor">🌍 Editor FWL</a>
+        <a href="#" class="nav-link" data-section="pages/plugins">📊 Mods</a>
         <a href="#" class="nav-link" data-section="pages/cfg">⚙️ Archivos CFG</a>
         <a href="#" class="nav-link" data-section="pages/lists">📂 Listas</a>
         <a href="#" class="nav-link" data-section="pages/logs">📜 Logs</a>
         <a href="#" class="nav-link" data-section="pages/update">🔄 Actualización</a>
         <a href="#" class="nav-link" data-section="pages/rcon">🖥️ RCON</a>
-		<a href="#" class="nav-link" data-section="pages/crons">⏱️ Cron Jobs</a>
-		<a href="#" class="nav-link" data-section="pages/alerts">📢 Alerts</a>
-		<a class="nav-link" data-page="soporte.php">🆘 Soporte</a>		
+        <a href="#" class="nav-link" data-section="pages/crons">⏱️ Cron Jobs</a>
+        <a href="#" class="nav-link" data-section="pages/alerts">📢 Alerts</a>        
+        <a href="#"	class="nav-link" data-section="pages/soporte">🆘 Soporte</a>
         <a href="logout.php" class="nav-link text-danger">🚪 Cerrar Sesión</a>
       </div>
     </nav>
@@ -48,25 +49,28 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
       <div class="text-center p-5 text-light">
         👋 Bienvenido al Panel de Administración de Valheim
       </div>
-	  
-	  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
+      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+      <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
-<script>
-$(function(){
-  $('.sidebar .nav-link').on('click', function(e){
-    const page = $(this).data('page');
-    if (!page) {
-      // Enlaces sin data-page (p.ej. logout) -> navegación normal
-      return;
-    }
-    e.preventDefault(); // Solo prevenimos en los que cargan AJAX
+      <script>
+      $(function(){
+        $('.sidebar .nav-link').on('click', function(e){
+          const page = $(this).data('section') || $(this).data('page');
+          if (!page) return; // enlaces normales como logout
 
-    $('.sidebar .nav-link').removeClass('active');
-    $(this).addClass('active');
-    $('#main').html('<div class="p-5 text-center">Cargando…</div>');
-    $('#main').load('pages/' + page);
-  });
-});
-</script>
+          e.preventDefault();
+          $('.sidebar .nav-link').removeClass('active');
+          $(this).addClass('active');
+          $('#main').html('<div class="p-5 text-center">Cargando…</div>');
+          // si ya viene con 'pages/' no duplicar
+          const path = page.startsWith('pages/') ? page : 'pages/' + page;
+          $('#main').load(path + '.php');
+        });
+      });
+      </script>
+    </main>
+  </div>
+</div>
+</body>
+</html>

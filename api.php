@@ -60,7 +60,23 @@ switch ($action) {
     out(['ok'=>true, 'content'=>$data]);
 }
 	
-	
+	case 'delete_cfg': {
+    check_csrf_if_present();
+    if (!$CFG_DIR_REAL) out(['ok'=>false,'error'=>'CFG_DIR inválido']);
+    $rel = $_POST['rel'] ?? '';
+    if ($rel === '') out(['ok'=>false,'error'=>'Falta parámetro']);
+
+    $target = realpath($CFG_DIR_REAL . DIRECTORY_SEPARATOR . $rel);
+    if (!$target || strpos($target, $CFG_DIR_REAL) !== 0) out(['ok'=>false,'error'=>'Archivo inválido']);
+    if (!is_file($target) || !is_writable($target)) out(['ok'=>false,'error'=>'No se puede eliminar']);
+
+    if (!unlink($target)) {
+        out(['ok'=>false,'error'=>'Error al eliminar']);
+    }
+    out(['ok'=>true]);
+}
+
+
 	// -------------------------------------------------
     // MAPAS worlds_local
     // -------------------------------------------------
@@ -437,6 +453,22 @@ case 'alert_cancel': {
 
         out(['ok'=>true, 'content'=>file_get_contents($target)]);
     }
+	
+	
+	case 'clear_log': {
+    $which = $_POST['file'] ?? '';
+    $allowed = [
+        'server'   => SERVER_LOG,
+        'steamcmd' => STEAMCMD_LOG
+    ];
+    if (!isset($allowed[$which])) out(['ok'=>false,'error'=>'No permitido']);
+
+    if (file_put_contents($allowed[$which], '') === false) {
+        out(['ok'=>false,'error'=>'No se pudo limpiar el log']);
+    }
+    out(['ok'=>true]);
+}
+
 
     case 'save_cfg': {
         check_csrf_if_present();
@@ -459,18 +491,44 @@ case 'alert_cancel': {
     // LOGS: server / steamcmd
     // -------------------------------------------------
     case 'view_log': {
-        $which = $_GET['file'] ?? '';
-        $allowed = [
-            'server'   => SERVER_LOG,
-            'steamcmd' => STEAMCMD_LOG
-        ];
-        if (!isset($allowed[$which])) out(['ok'=>false,'error'=>'No permitido']);
+    $which = $_GET['file'] ?? '';
+    $allowed = [
+        'server'   => SERVER_LOG,
+        'steamcmd' => STEAMCMD_LOG
+    ];
+    if (!isset($allowed[$which])) out(['ok'=>false,'error'=>'No permitido']);
 
-        $log = $allowed[$which];
-        if (!is_file($log) || !is_readable($log)) out(['ok'=>false,'error'=>'Log no encontrado']);
+    $log = $allowed[$which];
+    if (!is_file($log) || !is_readable($log)) out(['ok'=>false,'error'=>'Log no encontrado']);
 
-        out(['ok'=>true, 'content'=>file_get_contents($log)]);
+    // Leer solo las últimas LOG_MAX_LINES
+    $lines = file($log, FILE_IGNORE_NEW_LINES);
+    if ($lines === false) out(['ok'=>false,'error'=>'No se pudo leer el log']);
+    $count = count($lines);
+    if (defined('LOG_MAX_LINES') && $count > LOG_MAX_LINES) {
+        $lines = array_slice($lines, -LOG_MAX_LINES);
     }
+    out(['ok'=>true, 'content'=>implode("\n", $lines)]);
+}
+
+case 'clear_log': {
+    $which = $_POST['file'] ?? '';
+    $allowed = [
+        'server'   => SERVER_LOG,
+        'steamcmd' => STEAMCMD_LOG
+    ];
+    if (!isset($allowed[$which])) out(['ok'=>false,'error'=>'No permitido']);
+
+    $log = $allowed[$which];
+    if (!is_file($log) || !is_writable($log)) out(['ok'=>false,'error'=>'Log no editable']);
+
+    if (file_put_contents($log, '') === false) {
+        out(['ok'=>false,'error'=>'No se pudo limpiar el log']);
+    }
+    out(['ok'=>true]);
+}
+
+
 
 
 	case 'schedule_restart': {
