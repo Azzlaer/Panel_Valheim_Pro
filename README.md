@@ -107,7 +107,10 @@ permitiendo ejecutar múltiples instancias sin interferir.
 ➡️ https://LatinBattle.com
 
 📌 Discord de comunidad:  
-*(agregar enlace si corresponde)*
+https://discord.gg/mvczduBBVP
+
+📌 WhatsApp Comunidad: 
+https://chat.whatsapp.com/KmmccSSlnvbJgEzETF6TLR
 
 📌 Créditos IA:  
 *ChatGPT – OpenAI asistió en el diseño del panel y automatizaciones.*
