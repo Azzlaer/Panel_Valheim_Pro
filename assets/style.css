@@ -1,0 +1,147 @@
+/* ====== ESTILO CLÁSICO PANEL SERVIDOR ====== */
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background-color: #202124;
+  color: #e0e0e0;
+  margin: 0;
+  padding: 20px;
+}
+
+h1 {
+  color: #00bcd4;
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 1.8em;
+  text-shadow: 1px 1px 2px #000;
+}
+
+.servers-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  background-color: #2b2d31;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.4);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 15px;
+  gap: 8px;
+}
+
+button {
+  background-color: #007acc;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s ease-in-out, transform 0.1s;
+}
+button:hover {
+  background-color: #2196f3;
+}
+button:active {
+  transform: scale(0.97);
+}
+button.danger {
+  background-color: #e53935;
+}
+button.danger:hover {
+  background-color: #ef5350;
+}
+button.success {
+  background-color: #43a047;
+}
+button.success:hover {
+  background-color: #66bb6a;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+}
+
+th, td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid #3c4043;
+}
+
+th {
+  background-color: #323437;
+  color: #00bcd4;
+  font-weight: bold;
+}
+
+tr:nth-child(even) {
+  background-color: #292b2e;
+}
+
+tr:hover {
+  background-color: #33363a;
+}
+
+.loading {
+  text-align: center;
+  color: #9e9e9e;
+  padding: 20px;
+}
+
+code {
+  background: rgba(255,255,255,0.1);
+  padding: 3px 6px;
+  border-radius: 4px;
+  color: #ffc107;
+  font-size: 13px;
+}
+
+/* === MODAL === */
+.modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0,0,0,0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+.modal.hidden {
+  display: none;
+}
+.modal-content {
+  background-color: #2e3135;
+  padding: 20px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 800px;
+  box-shadow: 0 0 15px rgba(0,0,0,0.5);
+}
+.modal-content h2 {
+  color: #00bcd4;
+  margin-top: 0;
+  text-align: center;
+}
+.modal-content textarea {
+  width: 100%;
+  height: 400px;
+  background-color: #1f2124;
+  color: #e0e0e0;
+  border: 1px solid #3c4043;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 13px;
+  padding: 10px;
+  resize: vertical;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}

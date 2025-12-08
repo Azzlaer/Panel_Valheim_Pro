@@ -6,12 +6,18 @@ if (empty($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     exit("Acceso denegado");
 }
 
-function listCFGFiles($dir) {
-    $rii = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS));
+// === Helpers ===
+function listConfigFiles($dir) {
+    $rii = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS)
+    );
     $files = [];
     foreach ($rii as $file) {
-        if ($file->isFile() && strtolower($file->getExtension()) === "cfg") {
-            $files[] = $file->getPathname();
+        if ($file->isFile()) {
+            $ext = strtolower($file->getExtension());
+            if (in_array($ext, ["cfg","ini","yml","yaml","txt"])) {
+                $files[] = $file->getPathname();
+            }
         }
     }
     sort($files);
@@ -23,12 +29,12 @@ function relFromCfg($abs) {
     return ($absR && strpos($absR, $base) === 0) ? substr($absR, strlen($base)) : basename($abs);
 }
 
-$cfgFiles = is_dir(CFG_DIR) ? listCFGFiles(CFG_DIR) : [];
+$configFiles = is_dir(CFG_DIR) ? listConfigFiles(CFG_DIR) : [];
 ?>
 <div class="container mt-4">
   <div class="d-flex align-items-center gap-2 mb-2">
-    <h2 class="mb-0">⚙️ Archivos CFG en Config</h2>
-    <span class="badge bg-info text-dark"><?= count($cfgFiles) ?></span>
+    <h2 class="mb-0">⚙️ Archivos de Configuración</h2>
+    <span class="badge bg-info text-dark"><?= count($configFiles) ?></span>
     <small class="ms-2 text-muted">Carpeta: <code><?= htmlspecialchars(CFG_DIR) ?></code></small>
   </div>
 
@@ -43,10 +49,10 @@ $cfgFiles = is_dir(CFG_DIR) ? listCFGFiles(CFG_DIR) : [];
         </tr>
       </thead>
       <tbody>
-      <?php if (empty($cfgFiles)): ?>
-        <tr><td colspan="4" class="text-center">📭 No se encontraron archivos .cfg</td></tr>
+      <?php if (empty($configFiles)): ?>
+        <tr><td colspan="4" class="text-center">📭 No se encontraron archivos CFG, INI, YML o TXT</td></tr>
       <?php else: ?>
-        <?php foreach ($cfgFiles as $file):
+        <?php foreach ($configFiles as $file):
             $rel = relFromCfg($file);
         ?>
         <tr>
@@ -75,7 +81,7 @@ $cfgFiles = is_dir(CFG_DIR) ? listCFGFiles(CFG_DIR) : [];
   <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content bg-dark text-light">
       <div class="modal-header">
-        <h5 class="modal-title" id="cfgTitle">Editar archivo CFG</h5>
+        <h5 class="modal-title" id="cfgTitle">Editar archivo</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
@@ -89,10 +95,12 @@ $cfgFiles = is_dir(CFG_DIR) ? listCFGFiles(CFG_DIR) : [];
   </div>
 </div>
 
+<!-- CodeMirror -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.css"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/theme/dracula.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/mode/properties/properties.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/mode/yaml/yaml.min.js"></script>
 
 <script>
 let cm = null;
@@ -111,25 +119,31 @@ function openCfgEditor(btn){
               alert('❌ ' + (j && j.error ? j.error : 'Error desconocido'));
               return;
           }
-          if (!cm) {
-              cm = CodeMirror.fromTextArea(document.getElementById('cfgEditor'), {
-                  lineNumbers: true,
-                  mode: 'properties',
-                  theme: 'dracula',
-                  indentUnit: 2,
-                  tabSize: 2
-              });
-          }
+          const ta = document.getElementById('cfgEditor');
+          if (cm) { cm.toTextArea(); cm = null; } // Reiniciar CodeMirror
+          cm = CodeMirror.fromTextArea(ta, {
+              lineNumbers: true,
+              mode: guessMode(rel),
+              theme: 'dracula',
+              indentUnit: 2,
+              tabSize: 2
+          });
           cm.setValue(j.content || '');
           new bootstrap.Modal(document.getElementById('cfgModal')).show();
       })
       .catch(() => alert('⚠️ Error al cargar el archivo.'));
 }
 
+function guessMode(filename) {
+    const ext = filename.split('.').pop().toLowerCase();
+    if (ext === 'yml' || ext === 'yaml') return 'yaml';
+    if (ext === 'ini' || ext === 'cfg' || ext === 'txt') return 'properties';
+    return 'properties';
+}
+
 function saveCfg(){
     if (!currentRel) return;
     const content = cm ? cm.getValue() : document.getElementById('cfgEditor').value;
-
     const body = new URLSearchParams();
     body.set('rel', currentRel);
     body.set('content', content);
@@ -158,7 +172,6 @@ function deleteCfg(btn){
     const rel = btn.getAttribute('data-rel');
     if (!rel) return;
     if (!confirm('⚠️ ¿Seguro que quieres eliminar ' + rel + '?')) return;
-
     const body = new URLSearchParams();
     body.set('rel', rel);
     <?php if (!empty($_SESSION['csrf_token'])): ?>

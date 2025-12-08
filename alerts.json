@@ -7,7 +7,7 @@
         "repeats_total": 1,
         "repeats_left": 1,
         "next_run_ts": 1757570871,
-        "status": "active",
+        "status": "canceled",
         "created_at": 1757569071,
         "last_run_ts": null
     }

@@ -27,19 +27,23 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     <nav class="col-md-3 col-lg-2 d-md-block sidebar p-3">
       <h3 class="text-light mb-4">⚔️ Panel</h3>
       <div class="nav flex-column nav-pills">
+		<a href="#" class="nav-link active" data-section="install">🖥️ Instalar</a>
         <a href="#" class="nav-link active" data-section="pages/servers">🖥️ Servidores</a>
         <a href="#" class="nav-link" data-section="pages/backups">🗂️ Respaldos</a>
         <a href="#" class="nav-link" data-section="pages/maps">🗺️ Mapas</a>
-		<a href="#" class="nav-link" data-section="pages/fwl_editor">🌍 Editor FWL</a>
         <a href="#" class="nav-link" data-section="pages/plugins">📊 Mods</a>
         <a href="#" class="nav-link" data-section="pages/cfg">⚙️ Archivos CFG</a>
         <a href="#" class="nav-link" data-section="pages/lists">📂 Listas</a>
         <a href="#" class="nav-link" data-section="pages/logs">📜 Logs</a>
         <a href="#" class="nav-link" data-section="pages/update">🔄 Actualización</a>
         <a href="#" class="nav-link" data-section="pages/rcon">🖥️ RCON</a>
-        <a href="#" class="nav-link" data-section="pages/crons">⏱️ Cron Jobs</a>
-        <a href="#" class="nav-link" data-section="pages/alerts">📢 Alerts</a>        
-        <a href="#"	class="nav-link" data-section="pages/soporte">🆘 Soporte</a>
+        <!-- <a href="#" class="nav-link" data-section="pages/crons">⏱️ Cron Jobs</a>	-->
+        <!-- <a href="#" class="nav-link" data-section="pages/alerts">📢 Alerts</a>	-->
+		<!-- Sidebar	<a href="#" class="nav-link" data-section="pages/rdp_port">🖧 Puerto RDP</a>		-->
+		<!-- Sidebar	<a href="#" class="nav-link" data-section="pages/procesos_valheim">⚙️ Procesos</a>	-->
+		
+		
+        <a href="#"	class="nav-link" data-section="pages/soporte">🆘 Soporte</a>		
         <a href="logout.php" class="nav-link text-danger">🚪 Cerrar Sesión</a>
       </div>
     </nav>

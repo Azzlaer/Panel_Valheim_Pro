@@ -6,6 +6,9 @@ if (empty($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     exit('Acceso denegado');
 }
 
+
+
+
 $servers = file_exists(SERVERS_JSON) ? (json_decode(file_get_contents(SERVERS_JSON), true) ?: []) : [];
 $serverMap = [];
 foreach ($servers as $s) { $serverMap[intval($s['id'])] = $s['name'] ?? ('ID ' . intval($s['id'])); }
@@ -89,6 +92,31 @@ foreach ($servers as $s) { $serverMap[intval($s['id'])] = $s['name'] ?? ('ID ' .
         </div>
     </div>
 </div>
+
+<script>
+// === WORKER DE ALERTAS AUTOMÁTICO ===
+setInterval(() => {
+  fetch('alerts_worker.php')
+    .then(r => r.json())
+    .then(j => {
+      if (!j.ok) return;
+      if (j.executed && j.executed.length > 0) {
+        j.executed.forEach(e => {
+          console.log("🔔 Ejecutada:", e.cmd, "en", e.server);
+          const note = document.createElement('div');
+          note.className = 'alert alert-info position-fixed bottom-0 end-0 m-3 shadow';
+          note.style.zIndex = 9999;
+          note.innerHTML = `<strong>🕒 ${e.server}</strong><br>${e.cmd}`;
+          document.body.appendChild(note);
+          setTimeout(()=>note.remove(), 8000);
+        });
+        loadAlerts(); // refresca la tabla
+      }
+    })
+    .catch(err => console.error('Error al verificar alertas:', err));
+}, 30000); // revisa cada 30 segundos
+
+</script>
 
 <script>
 function showMsg(html, type='info'){
