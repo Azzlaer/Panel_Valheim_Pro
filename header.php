@@ -41,7 +41,7 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
         <!-- <a href="#" class="nav-link" data-section="pages/alerts">📢 Alerts</a>	-->
 		<!-- Sidebar	<a href="#" class="nav-link" data-section="pages/rdp_port">🖧 Puerto RDP</a>		-->
 		<!-- Sidebar	<a href="#" class="nav-link" data-section="pages/procesos_valheim">⚙️ Procesos</a>	-->
-		
+		<a href="#" class="nav-link" data-section="pages/donaciones">♥ Donaciones ♥</a>
 		
         <a href="#"	class="nav-link" data-section="pages/soporte">🆘 Soporte</a>		
         <a href="logout.php" class="nav-link text-danger">🚪 Cerrar Sesión</a>
