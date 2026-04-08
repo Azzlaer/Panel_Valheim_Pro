@@ -1,9 +1,9 @@
 <?php
-require_once "../config.php";
+require_once __DIR__ . '/../config.php';
 
-if (!is_logged_in()) {
-    echo '<div class="alert alert-danger">Sesión expirada. Vuelve a iniciar sesión.</div>';
-    return;
+if (empty($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+    http_response_code(403);
+    exit('Acceso denegado');
 }
 ?>
 
@@ -131,20 +131,59 @@ if (!is_logged_in()) {
 
     <hr class="my-5">
 
-    <h4 class="fw-bold mb-3">🌍 Donaciones Internacionales / Cripto (USD)</h4>
+    <h4 class="fw-bold mb-3">🌍 Donaciones Internacionales / Cripto</h4>
 
-    <div class="donation-card">
-        <p class="section-note mb-3">
-            También puedes apoyar el proyecto mediante depósito en dólares (World App).
-        </p>
-        <table class="donation-table">
-            <tr><td>Banco</td><td>Lead Bank</td></tr>
-            <tr><td>Tipo de cuenta</td><td>Cuenta Corriente</td></tr>
-            <tr><td>N° Ruta bancaria</td><td>101019644</td></tr>
-            <tr><td>N° Cuenta</td><td>214027546387</td></tr>
-            <tr><td>Beneficiario</td><td>Andres Wurth Aranda</td></tr>
-            <tr><td>Dirección</td><td>1801 Main St., Kansas City, MO 64108</td></tr>
-        </table>
+    <div class="row g-4">
+
+        <!-- World App USD -->
+        <div class="col-md-6">
+            <div class="donation-card">
+                <div class="donation-title mb-2">💵 Transferencia USD (World App)</div>
+                <table class="donation-table">
+                    <tr><td>Banco</td><td>Lead Bank</td></tr>
+                    <tr><td>Tipo de cuenta</td><td>Cuenta Corriente</td></tr>
+                    <tr><td>N° Ruta bancaria</td><td>101019644</td></tr>
+                    <tr><td>N° Cuenta</td><td>214027546387</td></tr>
+                    <tr><td>Beneficiario</td><td>Andres Wurth Aranda</td></tr>
+                    <tr><td>Dirección</td><td>1801 Main St., Kansas City, MO 64108</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- XTB -->
+        <div class="col-md-6">
+            <div class="donation-card">
+                <div class="donation-title mb-2">🪙 XTB (Cripto)</div>
+                <table class="donation-table">
+                    <tr><td>ID</td><td>001dk00000IDE2nAAH</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- WorldCoin -->
+        <div class="col-md-6">
+            <div class="donation-card">
+                <div class="donation-title mb-2">🌐 WorldCoin</div>
+                <table class="donation-table">
+                    <tr><td>Usuario</td><td>Azzlaer</td></tr>
+                    <tr><td>Dirección</td><td style="word-break: break-all;">0x94f266f829a271086eea4337ef2baea86df0b84b</td></tr>
+                    <tr><td>Red</td><td>World Chain</td></tr>
+                    <tr><td>Cripto</td><td>WLD</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Binance -->
+        <div class="col-md-6">
+            <div class="donation-card">
+                <div class="donation-title mb-2">🟡 Binance</div>
+                <table class="donation-table">
+                    <tr><td>Usuario ID</td><td>801556059</td></tr>
+                    <tr><td>Correo</td><td>azzlaersoft@gmail.com</td></tr>
+                </table>
+            </div>
+        </div>
+
     </div>
 
     <p class="section-note mt-4">
