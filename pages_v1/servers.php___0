@@ -1,0 +1,258 @@
+<?php
+require_once __DIR__ . "/../config.php";
+
+if (empty($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+    http_response_code(403);
+    exit("Acceso denegado");
+}
+
+// PID file que usa el panel
+define("PID_FILE", __DIR__ . "/../server.pid");
+
+// ==== Detectar si el servidor está online basado en PID guardado ====
+function isServerOnlineByPID() {
+    return file_exists(PID_FILE) && intval(trim(file_get_contents(PID_FILE))) > 0;
+}
+
+// ==== Cargar lista de servidores desde JSON ====
+$servers = [];
+if (file_exists(SERVERS_JSON)) {
+    $servers = json_decode(file_get_contents(SERVERS_JSON), true) ?: [];
+}
+?>
+
+<style>
+.servers-hero {
+    background: linear-gradient(135deg, rgba(59,130,246,0.14), rgba(15,23,42,0.65));
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 20px;
+    padding: 22px 22px 18px;
+    box-shadow: 0 16px 35px rgba(0,0,0,0.22);
+    margin-bottom: 20px;
+}
+
+.servers-hero h2 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 800;
+    color: #fff;
+}
+
+.servers-hero p {
+    margin: 8px 0 0;
+    color: #9ca3af;
+    font-size: 14px;
+}
+
+.servers-card {
+    background: rgba(17,24,39,0.82);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 20px;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.22);
+    overflow: hidden;
+}
+
+.servers-toolbar {
+    padding: 16px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.02);
+}
+
+.servers-toolbar .btn {
+    border-radius: 12px;
+    font-weight: 600;
+}
+
+.servers-table {
+    margin-bottom: 0;
+}
+
+.servers-table thead th {
+    background: rgba(255,255,255,0.03);
+    color: #cbd5e1;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding-top: 14px;
+    padding-bottom: 14px;
+    white-space: nowrap;
+}
+
+.servers-table tbody td {
+    vertical-align: middle;
+    border-color: rgba(255,255,255,0.05);
+}
+
+.server-name {
+    color: #fff;
+    font-weight: 700;
+    font-size: 15px;
+}
+
+.server-path {
+    display: inline-block;
+    max-width: 280px;
+    overflow-wrap: anywhere;
+    color: #cbd5e1;
+}
+
+.server-port-badge {
+    background: rgba(59,130,246,0.12);
+    color: #bfdbfe;
+    border: 1px solid rgba(59,130,246,0.22);
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.server-status-badge {
+    border-radius: 999px;
+    padding: 7px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.server-status-online {
+    background: rgba(16,185,129,0.12);
+    color: #a7f3d0;
+    border: 1px solid rgba(16,185,129,0.22);
+}
+
+.server-status-offline {
+    background: rgba(239,68,68,0.12);
+    color: #fecaca;
+    border: 1px solid rgba(239,68,68,0.22);
+}
+
+.server-params {
+    display: inline-block;
+    max-width: 460px;
+    white-space: normal;
+    word-break: break-word;
+    color: #cbd5e1;
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.server-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.server-actions .btn {
+    border-radius: 12px;
+    min-width: 100px;
+    font-weight: 600;
+}
+
+.modal-content {
+    border-radius: 20px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.38);
+}
+
+#serversJsonText {
+    min-height: 460px;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 13px;
+    border-radius: 14px;
+    resize: vertical;
+}
+
+#serversJsonMsg {
+    border-radius: 14px;
+    font-size: 14px;
+}
+
+.servers-empty {
+    padding: 28px;
+    color: #9ca3af;
+    text-align: center;
+}
+</style>
+
+<div class="container-fluid mt-4">
+    <div class="servers-hero">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <h2>🖥️ Gestión de Servidor</h2>
+                <p>
+                    Control centralizado del servidor asignado, edición segura de <code>servers.json</code>
+                    y administración operativa desde una interfaz más profesional.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="servers-card">
+        <div class="servers-toolbar d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="text-light fw-semibold">Servidor configurado</div>
+            <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-sm btn-outline-light" onclick="reloadServersSection()">↻ Refrescar</button>
+                <button class="btn btn-sm btn-primary" onclick="openServersJsonEditor()">📝 Editar servers.json</button>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-dark table-striped align-middle text-center servers-table">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Ejecutable</th>
+                        <th>Puerto</th>
+                        <th>Estado</th>
+                        <th>Parámetros</th>
+                        <th style="width:220px">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (empty($servers)): ?>
+                        <tr>
+                            <td colspan="6" class="servers-empty">⚠️ No existen servidores configurados.</td>
+                        </tr>
+                    <?php else: ?>
+                        <?php foreach ($servers as $s): ?>
+                            <?php
+                                $port = '';
+                                if (!empty($s['params']) && preg_match('/-port\s+(\d+)/', $s['params'], $m)) {
+                                    $port = $m[1];
+                                }
+                                $online = isServerOnlineByPID();
+                            ?>
+                            <tr>
+                                <td>
+                                    <div class="server-name"><?= htmlspecialchars($s['name']) ?></div>
+                                </td>
+
+                                <td class="text-start">
+                                    <span class="server-path"><?= htmlspecialchars($s['path']) ?></span>
+                                </td>
+
+                                <td>
+                                    <span class="server-port-badge"><?= $port ?: '-' ?></span>
+                                </td>
+
+                                <td>
+                                    <?php if ($online): ?>
+                                        <span class="server-status-badge server-status-online">🟢 ONLINE</span>
+                                    <?php else: ?>
+                                        <span class="server-status-badge server-status-offline">🔴 OFFLINE</span>
+                                    <?php endif; ?>
+                                </td>
+
+                                <td class="text-start">
+                                    <span class="server-params"><?= htmlspecialchars($s['params']) ?></span>
+                                </td>
+
+                                <td>
+                                    <div class="server-actions">
+                                        <button class="btn btn-success btn-sm" onclick="serverOp('start', <?= (int)$s['id'] ?>)">🚀 Iniciar</button>
+                                        <button class="btn btn-danger btn-sm" onclick="serverOp('stop', <?= (int)$s['id'] ?>)">🛑 Detener</button>
+                                    </div>
+                                </td
