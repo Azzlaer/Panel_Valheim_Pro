@@ -2,16 +2,10 @@
 
 Proyecto desarrollado en colaboración entre **Azzlaer** y **ChatGPT (OpenAI)** para la comunidad de **LatinBattle.com**, diseñado para gestionar servidores dedicados de **Valheim** con control web seguro, monitoreo y automatización.
 
-![Descripci?n de la imagen](https://github.com/Azzlaer/Panel_Valheim_Pro/blob/main/screens/1.png)
-![Descripci?n de la imagen](https://github.com/Azzlaer/Panel_Valheim_Pro/blob/main/screens/2.png)
-![Descripci?n de la imagen](https://github.com/Azzlaer/Panel_Valheim_Pro/blob/main/screens/3.png)
-![Descripci?n de la imagen](https://github.com/Azzlaer/Panel_Valheim_Pro/blob/main/screens/4.png)
-![Descripci?n de la imagen](https://github.com/Azzlaer/Panel_Valheim_Pro/blob/main/screens/5.png)
-![Descripci?n de la imagen](https://github.com/Azzlaer/Panel_Valheim_Pro/blob/main/screens/6.png)
-![Descripci?n de la imagen](https://github.com/Azzlaer/Panel_Valheim_Pro/blob/main/screens/7.png)
-![Descripci?n de la imagen](https://github.com/Azzlaer/Panel_Valheim_Pro/blob/main/screens/8.png)
-![Descripci?n de la imagen](https://github.com/Azzlaer/Panel_Valheim_Pro/blob/main/screens/9.png)
-![Descripci?n de la imagen](https://github.com/Azzlaer/Panel_Valheim_Pro/blob/main/screens/10.png)
+![Descripci?n de la imagen](https://github.com/Azzlaer/Panel_Valheim_Pro/blob/main/screens_v1/0.png)
+![Descripci?n de la imagen](https://github.com/Azzlaer/Panel_Valheim_Pro/blob/main/screens_v1/1.png)
+![Descripci?n de la imagen](https://github.com/Azzlaer/Panel_Valheim_Pro/blob/main/screens_v1/2.png)
+![Descripci?n de la imagen](https://github.com/Azzlaer/Panel_Valheim_Pro/blob/main/screens_v1/3.png)
 
 ## 📌 Características principales
 
