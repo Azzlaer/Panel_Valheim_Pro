@@ -152,6 +152,13 @@ if (empty($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     margin-bottom: 0;
 }
 
+.maps-wrap .action-group {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
 @media (max-width: 991px) {
     .maps-wrap .stats-grid {
         grid-template-columns: 1fr 1fr;
@@ -169,7 +176,7 @@ if (empty($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
         <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
             <div>
                 <h2>🗺️ Gestión de Mapas</h2>
-                <p>Administra los archivos del directorio <code>worlds_local</code>, sube mapas manualmente y elimina archivos desde una consola centralizada.</p>
+                <p>Administra los archivos del directorio <code>worlds_local</code>, sube mapas manualmente, descárgalos y elimina archivos desde una consola centralizada.</p>
             </div>
 
             <div class="hero-actions d-flex gap-2">
@@ -226,7 +233,7 @@ if (empty($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     <div class="maps-card">
         <div class="section-header">
             <h3>📁 Archivos de mundos</h3>
-            <small>Listado segmentado por extensión para facilitar mantenimiento y limpieza.</small>
+            <small>Listado segmentado por extensión para facilitar mantenimiento, descarga y limpieza.</small>
         </div>
 
         <div class="p-3">
@@ -239,7 +246,7 @@ if (empty($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
                             <tr>
                                 <th>Nombre</th>
                                 <th>Tamaño (MB)</th>
-                                <th style="width:160px;">Acción</th>
+                                <th style="width:240px;">Acción</th>
                             </tr>
                         </thead>
                         <tbody><tr><td colspan="3">Cargando…</td></tr></tbody>
@@ -255,7 +262,7 @@ if (empty($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
                             <tr>
                                 <th>Nombre</th>
                                 <th>Tamaño (MB)</th>
-                                <th style="width:160px;">Acción</th>
+                                <th style="width:240px;">Acción</th>
                             </tr>
                         </thead>
                         <tbody><tr><td colspan="3">Cargando…</td></tr></tbody>
@@ -271,7 +278,7 @@ if (empty($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
                             <tr>
                                 <th>Nombre</th>
                                 <th>Tamaño (MB)</th>
-                                <th style="width:160px;">Acción</th>
+                                <th style="width:240px;">Acción</th>
                             </tr>
                         </thead>
                         <tbody><tr><td colspan="3">Cargando…</td></tr></tbody>
@@ -299,6 +306,10 @@ function updateMapStats(sets){
   document.getElementById('count-old').textContent = sets.old.length;
 }
 
+function getDownloadUrl(name){
+  return 'api.php?action=download_map&file=' + encodeURIComponent(name);
+}
+
 function loadMaps(){
   fetch('api.php?action=list_maps', {credentials:'same-origin'})
     .then(r => r.json())
@@ -324,7 +335,10 @@ function loadMaps(){
               <td><span class="file-name">${f.name}</span></td>
               <td>${Number(f.size_mb).toFixed(2)}</td>
               <td>
-                <button class="btn btn-danger btn-sm btn-action" onclick="deleteMap('${encodeURIComponent(f.name)}')">🗑️ Eliminar</button>
+                <div class="action-group">
+                  <a class="btn btn-primary btn-sm btn-action" href="${getDownloadUrl(f.name)}">⬇️ Descargar</a>
+                  <button class="btn btn-danger btn-sm btn-action" onclick="deleteMap('${encodeURIComponent(f.name)}')">🗑️ Eliminar</button>
+                </div>
               </td>
             </tr>
           `).join('');
@@ -339,7 +353,7 @@ function loadMaps(){
 }
 
 function deleteMap(name){
-  if(!confirm('¿Eliminar el archivo seleccionado?\n\n' + decodeURIComponent(name))) return;
+  if(!confirm('¿Eliminar el archivo seleccionado?\\n\\n' + decodeURIComponent(name))) return;
 
   fetch('api.php?action=delete_map&file=' + name, {credentials:'same-origin'})
     .then(r => r.json())
