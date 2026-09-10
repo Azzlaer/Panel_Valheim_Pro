@@ -21,14 +21,14 @@ $(function () {
     </div>
   `);
 
-  const $default = $('.nav-link[data-section="pages/servers"]');
+  const $default = $('.nav-link[data-section="pages/overview"]');
 
   if ($default.length) {
     $('.nav-link').removeClass('active');
     $default.addClass('active');
     $default.trigger('click');
   } else {
-    $main.load("pages/servers.php", function(response, status){
+    $main.load("pages/overview.php", function(response, status){
       if (status === 'error') {
         $main.html(`
           <div class="welcome-card">
@@ -36,7 +36,7 @@ $(function () {
             <div class="welcome-title">No se pudo cargar el panel</div>
             <p class="welcome-text">
               Ocurrió un problema al intentar abrir la sección principal del sistema.
-              Revisa que el archivo <code>pages/servers.php</code> exista y que no tenga errores.
+              Revisa que el archivo <code>pages/overview.php</code> exista y que no tenga errores.
             </p>
           </div>
         `);

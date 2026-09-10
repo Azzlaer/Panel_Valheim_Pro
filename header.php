@@ -1,5 +1,8 @@
 <?php
 require_once "config.php";
+require_once __DIR__ . "/lib/panel_settings.php";
+$panelSettings = panel_load_settings();
+if (!empty($panelSettings['timezone'])) { @date_default_timezone_set($panelSettings['timezone']); }
 
 if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     header("Location: login.php");
@@ -11,7 +14,7 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Valheim Enterprise Panel</title>
+    <title><?= htmlspecialchars($panelSettings['panel_name']) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         :root{
@@ -23,7 +26,7 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
             --border:rgba(255,255,255,0.08);
             --text-main:#f3f4f6;
             --text-soft:#9ca3af;
-            --accent:#3b82f6;
+            --accent:<?= htmlspecialchars($panelSettings['accent']) ?>;
             --accent-hover:#2563eb;
             --danger:#ef4444;
             --success:#10b981;
@@ -252,14 +255,14 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
         <!-- Sidebar -->
         <nav class="col-lg-2 col-md-3 sidebar p-3">
             <div class="brand-box">
-                <div class="brand-eyebrow">LatinBattle.com</div>
+                <div class="brand-eyebrow"><?= htmlspecialchars($panelSettings['brand_name']) ?></div>
                 <h1 class="brand-title">⚔️ Valheim Panel</h1>
-                <p class="brand-sub">Administración empresarial de servidor dedicado</p>
+                <p class="brand-sub"><?= htmlspecialchars($panelSettings['brand_subtitle']) ?></p>
             </div>
 
             <div class="nav flex-column nav-pills">
-                <a href="#" class="nav-link" data-section="install">🖥️ Instalar</a>
-                <a href="#" class="nav-link active" data-section="pages/servers">🖥️ Servidores</a>
+                <a href="#" class="nav-link active" data-section="pages/overview">🏠 Overview</a>
+                <a href="#" class="nav-link" data-section="pages/servers">🖥️ Servidores</a>
                 <a href="#" class="nav-link" data-section="pages/backups">🗂️ Respaldos</a>
                 <a href="#" class="nav-link" data-section="pages/maps">🗺️ Mapas</a>
                 <a href="#" class="nav-link" data-section="pages/plugins">📊 Mods</a>
@@ -268,15 +271,20 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
                 <a href="#" class="nav-link" data-section="pages/logs">📜 Logs</a>
                 <a href="#" class="nav-link" data-section="pages/update">🔄 Actualización</a>
                 <a href="#" class="nav-link" data-section="pages/rcon">🖥️ RCON</a>
+                <a href="#" class="nav-link" data-section="pages/players">👥 Players Live</a>
                 <!-- <a href="#" class="nav-link" data-section="pages/crons">⏱️ Cron Jobs</a> -->
                 <a href="#" class="nav-link" data-section="pages/donaciones">📢 Donaciones</a>
                 <a href="#" class="nav-link" data-section="pages/procesos_valheim">⚙️ Procesos</a>
+                <a href="#" class="nav-link" data-section="pages/automation">⏱️ Automatización</a>
+                <a href="#" class="nav-link" data-section="pages/events">📡 Eventos</a>
+                <a href="#" class="nav-link" data-section="pages/health">🩺 Health Center</a>
+                <a href="#" class="nav-link" data-section="pages/settings">🎛️ Configuración</a>
                 <a href="#" class="nav-link" data-section="pages/soporte">🆘 Soporte</a>
                 <a href="logout.php" class="nav-link text-danger">🚪 Cerrar Sesión</a>
             </div>
 
             <div class="sidebar-footer">
-                Powered by Azzlaer & ChatGPT OpenAI
+                Powered by Azzlaer & ChatGPT OpenAI<br><span style="opacity:.75">v<?= htmlspecialchars($panelSettings['version']) ?></span>
             </div>
         </nav>
 
@@ -287,7 +295,11 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
                     <h2 class="topbar-title">Panel de Administración</h2>
                     <p class="topbar-sub">Gestión centralizada del ecosistema Valheim dedicado</p>
                 </div>
-                <div class="topbar-badge">● Sesión activa</div>
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                    <span class="topbar-badge" id="global-server-badge">● Panel activo</span>
+                    <button class="btn btn-sm btn-outline-light position-relative" onclick="openEventCenter()">🔔 <span id="event-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none">0</span></button>
+                    <span class="topbar-badge" style="background:rgba(59,130,246,.12);color:#bfdbfe;border-color:rgba(59,130,246,.2)">v<?= htmlspecialchars($panelSettings['version']) ?></span>
+                </div>
             </div>
 
             <main id="main">
@@ -339,6 +351,24 @@ $(function(){
         });
     });
 });
+</script>
+
+<script>
+window.openEventCenter=function(){
+  const link=document.querySelector('[data-section="pages/events"]'); if(link) link.click();
+};
+(function(){
+  let lastSeen=parseInt(localStorage.getItem('vh_event_seen')||'0',10);
+  function poll(){
+    fetch('api.php?action=events_list',{credentials:'same-origin'}).then(r=>r.json()).then(j=>{
+      if(!j.ok)return; const items=j.items||[]; const fresh=items.filter(e=>(e.ts||0)>lastSeen);
+      const badge=document.getElementById('event-count'); if(badge){badge.textContent=fresh.length;badge.classList.toggle('d-none',fresh.length===0);}
+      if(items.length){ const newest=Math.max(...items.map(e=>e.ts||0)); if(document.querySelector('[data-section="pages/events"].active')){localStorage.setItem('vh_event_seen',String(newest));lastSeen=newest;if(badge)badge.classList.add('d-none');}}
+    }).catch(()=>{});
+  }
+  setInterval(()=>{fetch('automation_worker.php',{credentials:'same-origin'}).catch(()=>{});poll();},60000);
+  poll();
+})();
 </script>
 </body>
 </html>

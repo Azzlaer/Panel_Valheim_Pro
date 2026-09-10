@@ -2,7 +2,7 @@
     {
         "id": 1,
         "name": "Servidor 20",
-        "path": "E:\\v1\\valheim_server.exe",
-        "params": "-nographics -batchmode -name \"LatinBattle.com CLP20\" -port 2456 -world \"DemiServer\" -password \"demi123\" -crossplay -savedir \"E:\\v1\\server1\" -public 1 -logFile \"E:\\v1\\server1\\server1.txt\" -saveinterval 1800 -preset hard -modifier combat hard -modifier raids hard -setkey playerevents"
+        "path": "C:\\Servidores\\Steam\\steamapps\\common\\Valheim dedicated server\\valheim_server.exe",
+        "params": "-nographics -batchmode -name \"LatinBattle.com ARG1\" -port 2456 -world \"WorldServer04\" -password \"31649\" -crossplay -savedir \"C:\\Servidores\\Steam\\steamapps\\common\\Valheim dedicated server\\server1\" -public 1 -logFile \"C:\\Servidores\\Steam\\steamapps\\common\\Valheim dedicated server\\server1\\server1.txt\" -saveinterval 1800 -preset hard -modifier combat hard -modifier raids more -modifier resources most -modifier portals casual -setkey playerevents -removekey fire"
     }
 ]

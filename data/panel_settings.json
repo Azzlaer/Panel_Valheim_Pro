@@ -1,0 +1,11 @@
+{
+    "panel_name": "Valheim Enterprise Panel",
+    "brand_name": "LatinBattle.com",
+    "brand_subtitle": "Game Server Control Panel",
+    "accent": "#3b82f6",
+    "timezone": "America/Santiago",
+    "backup_retention": 15,
+    "auto_refresh_seconds": 10,
+    "show_system_status": true,
+    "version": "2.3.0-alpha"
+}

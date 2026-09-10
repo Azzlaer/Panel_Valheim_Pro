@@ -260,7 +260,14 @@ function createBackup(){
   setBackupMsg('⏳ Creando respaldo manual, por favor espera...', 'info');
 
   fetch('api.php?action=create_backup', {credentials:'same-origin'})
-    .then(r => r.json())
+    .then(async r => {
+      const text = await r.text();
+      try { return JSON.parse(text); }
+      catch(e) {
+        console.error('Respuesta PHP create_backup:', text);
+        throw new Error('Respuesta inválida del servidor. Revisa el error PHP en la consola.');
+      }
+    })
     .then(d => {
       if(d.ok){
         setBackupMsg('✅ Respaldo creado correctamente: ' + d.file, 'success');

@@ -13,7 +13,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user = trim($_POST['username'] ?? '');
     $pass = trim($_POST['password'] ?? '');
 
-    if ($user === ADMIN_USER && $pass === ADMIN_PASS) {
+    $passwordOk = false;
+    if (defined('ADMIN_PASS_HASH') && ADMIN_PASS_HASH !== '') {
+        $passwordOk = password_verify($pass, ADMIN_PASS_HASH);
+    } elseif (defined('ADMIN_PASS')) {
+        // Compatibilidad temporal con instalaciones antiguas.
+        $passwordOk = hash_equals((string)ADMIN_PASS, (string)$pass);
+    }
+
+    if ($user === ADMIN_USER && $passwordOk) {
+        session_regenerate_id(true);
         $_SESSION['logged_in'] = true;
         header("Location: dashboard.php");
         exit;

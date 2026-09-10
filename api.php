@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . "/config.php";
+require_once __DIR__ . "/lib/event_center.php";
+require_once __DIR__ . "/lib/rcon_live.php";
 header("Content-Type: application/json; charset=utf-8");
 
 // =====================
@@ -259,7 +261,7 @@ function startServerHidden($exe, $params){
         return ['ok' => false, 'error' => 'El PID detectado no corresponde a ' . $expectedExe];
     }
 
-    savePID($pid);
+    savePID($pid); ec_set_state('ONLINE','Servidor iniciado',['pid'=>$pid]);
     return ['ok' => true, 'pid' => $pid];
 }
 
@@ -281,7 +283,7 @@ function stopServer() {
     sleep(2);
 
     if (!pidExists($pid)) {
-        clearPID();
+        clearPID(); ec_set_state('OFFLINE','Servidor detenido correctamente');
         return ['ok' => true, 'msg' => 'Servidor detenido correctamente.'];
     }
 
@@ -341,7 +343,7 @@ function detectValheimPidAndSave() {
         $path = strtolower(str_replace('/', '\\', (string)($p['ExecutablePath'] ?? '')));
 
         if ($pid > 0 && $realExe && $path === $realExe) {
-            savePID($pid);
+            savePID($pid); ec_set_state('ONLINE','PID detectado y asociado',['pid'=>$pid]);
             return ['ok' => true, 'pid' => $pid, 'mode' => 'ExecutablePath'];
         }
     }
@@ -352,7 +354,7 @@ function detectValheimPidAndSave() {
         $cmdl = strtolower(str_replace('/', '\\', (string)($p['CommandLine'] ?? '')));
 
         if ($pid > 0 && $savedir && $cmdl && strpos($cmdl, $savedir) !== false) {
-            savePID($pid);
+            savePID($pid); ec_set_state('ONLINE','PID detectado por savedir',['pid'=>$pid]);
             return ['ok' => true, 'pid' => $pid, 'mode' => 'savedir'];
         }
     }
@@ -365,7 +367,7 @@ function detectValheimPidAndSave() {
     $first = $processList[0] ?? null;
     $pid = intval($first['ProcessId'] ?? 0);
     if ($pid > 0) {
-        savePID($pid);
+        savePID($pid); ec_set_state('ONLINE','PID detectado por proceso reciente',['pid'=>$pid]);
         return ['ok' => true, 'pid' => $pid, 'mode' => 'first_recent'];
     }
 
@@ -584,6 +586,64 @@ break;
         out(['ok'=>true]);
     }
 
+    case 'rcon_live_status': {
+        try {
+            $playersRaw = vlr_command('players');
+            $statsRaw = vlr_command('serverStats');
+            $adminsRaw = vlr_command('adminlist');
+            $permittedRaw = vlr_command('permitted');
+            $bansRaw = vlr_command('banlist');
+            $players = vlr_parse_players($playersRaw);
+            vlr_sync_player_events($players);
+            out([
+                'ok'=>true,
+                'players'=>$players,
+                'stats'=>vlr_parse_stats($statsRaw),
+                'admins'=>vlr_parse_list($adminsRaw),
+                'permitted'=>vlr_parse_list($permittedRaw),
+                'bans'=>vlr_parse_list($bansRaw),
+                'mod'=>vlr_mod_detection(),
+                'raw'=>['players'=>$playersRaw,'stats'=>$statsRaw]
+            ]);
+        } catch (Throwable $e) {
+            out(['ok'=>false,'error'=>$e->getMessage(),'mod'=>vlr_mod_detection()]);
+        }
+    }
+
+    case 'rcon_find_player': {
+        $target = trim($_POST['target'] ?? '');
+        if ($target === '') out(['ok'=>false,'error'=>'Jugador/SteamID vacío']);
+        try {
+            $resp = vlr_command('findPlayer ' . vlr_safe_target($target));
+            out(['ok'=>true,'response'=>$resp]);
+        } catch (Throwable $e) { out(['ok'=>false,'error'=>$e->getMessage()]); }
+    }
+
+    case 'rcon_player_action': {
+        if (!check_csrf($_POST['csrf'] ?? '')) out(['ok'=>false,'error'=>'CSRF inválido']);
+        $actionName = trim($_POST['action_name'] ?? '');
+        $target = trim($_POST['target'] ?? '');
+        $map = [
+            'kick'=>'kick', 'ban'=>'ban', 'unban'=>'unban',
+            'add_admin'=>'addAdmin', 'remove_admin'=>'removeAdmin',
+            'add_permitted'=>'addPermitted', 'remove_permitted'=>'removePermitted'
+        ];
+        try {
+            if ($actionName === 'message') {
+                $msg = trim(str_replace(["\r","\n","\0"], ' ', $target));
+                if ($msg === '' || strlen($msg) > 500) throw new InvalidArgumentException('Mensaje inválido');
+                $resp = vlr_command('showMessage ' . $msg);
+                ec_log('rcon_message','Mensaje global enviado por RCON','info');
+                out(['ok'=>true,'response'=>$resp]);
+            }
+            if (!isset($map[$actionName])) out(['ok'=>false,'error'=>'Acción no permitida']);
+            $resp = vlr_command($map[$actionName] . ' ' . vlr_safe_target($target));
+            $level = in_array($actionName,['ban','kick'],true)?'warning':'info';
+            ec_log('player_admin','RCON '.$actionName.': '.$target,$level,['action'=>$actionName,'target'=>$target]);
+            out(['ok'=>true,'response'=>$resp]);
+        } catch (Throwable $e) { out(['ok'=>false,'error'=>$e->getMessage()]); }
+    }
+
     case 'rcon_send': {
         $cmd = trim($_POST['command'] ?? $_POST['cmd'] ?? '');
         if ($cmd === '') out(['ok'=>false,'error'=>'Comando vacío']);
@@ -706,31 +766,50 @@ break;
     }
 
     case 'create_backup': {
-        if (!defined('WORLDS_DIR')) out(['ok'=>false,'error'=>'WORLDS_DIR no definido']);
+        try {
+            if (!defined('WORLDS_DIR')) out(['ok'=>false,'error'=>'WORLDS_DIR no definido']);
+            if (!class_exists('ZipArchive')) out(['ok'=>false,'error'=>'ZipArchive no está habilitado en PHP. Activa extension=zip en php.ini y reinicia Apache.']);
 
-        $src = realpath(WORLDS_DIR);
-        if(!$src || !is_dir($src)) out(['ok'=>false,'error'=>'Directorio worlds_local inválido']);
+            $src = realpath(WORLDS_DIR);
+            if (!$src || !is_dir($src)) out(['ok'=>false,'error'=>'Directorio worlds_local inválido: '.WORLDS_DIR]);
+            if (!is_readable($src)) out(['ok'=>false,'error'=>'PHP no puede leer worlds_local']);
 
-        $backupDir = __DIR__ . '/backups';
-        if(!is_dir($backupDir)) @mkdir($backupDir,0777,true);
+            $backupDir = __DIR__ . DIRECTORY_SEPARATOR . 'backups';
+            if (!is_dir($backupDir) && !@mkdir($backupDir, 0775, true)) {
+                out(['ok'=>false,'error'=>'No se pudo crear la carpeta backups']);
+            }
+            if (!is_writable($backupDir)) out(['ok'=>false,'error'=>'La carpeta backups no tiene permisos de escritura']);
 
-        $fname = 'worlds_backup_'.date('Ymd_His').'.zip';
-        $zipPath = $backupDir . '/' . $fname;
+            $fname = 'worlds_backup_'.date('Ymd_His').'.zip';
+            $zipPath = $backupDir . DIRECTORY_SEPARATOR . $fname;
+            $zip = new ZipArchive();
+            $open = $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+            if ($open !== true) out(['ok'=>false,'error'=>'No se pudo crear ZIP. Código ZipArchive: '.$open]);
 
-        $zip = new ZipArchive();
-        if($zip->open($zipPath, ZipArchive::CREATE)!==TRUE){
-            out(['ok'=>false,'error'=>'No se pudo crear ZIP']);
+            $count = 0;
+            $it = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($src, FilesystemIterator::SKIP_DOTS),
+                RecursiveIteratorIterator::LEAVES_ONLY
+            );
+            foreach ($it as $file) {
+                if (!$file->isFile()) continue;
+                $path = $file->getRealPath();
+                if (!$path) continue;
+                $rel = substr($path, strlen($src) + 1);
+                if ($zip->addFile($path, $rel)) $count++;
+            }
+            if (!$zip->close()) out(['ok'=>false,'error'=>'No se pudo finalizar el archivo ZIP']);
+            if (!is_file($zipPath)) out(['ok'=>false,'error'=>'El ZIP no existe después de crearlo']);
+
+            out([
+                'ok'=>true,
+                'file'=>$fname,
+                'files_added'=>$count,
+                'size_mb'=>round(filesize($zipPath)/1048576, 2)
+            ]);
+        } catch (Throwable $e) {
+            out(['ok'=>false,'error'=>'Error al crear respaldo: '.$e->getMessage()]);
         }
-
-        $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($src, FilesystemIterator::SKIP_DOTS));
-        foreach($it as $file){
-            $path = $file->getRealPath();
-            $rel  = substr($path, strlen($src)+1);
-            $zip->addFile($path, $rel);
-        }
-
-        $zip->close();
-        out(['ok'=>true,'file'=>$fname]);
     }
 
     case 'list_backups': {
@@ -946,6 +1025,57 @@ break;
         }
 
         out(['ok'=>true]);
+    }
+
+
+    case 'events_list': {
+        $items = ec_read_json(ec_events_file(), []);
+        out(['ok'=>true,'items'=>$items,'state'=>ec_get_state()]);
+    }
+
+    case 'automation_list': {
+        $items = ec_tasks();
+        foreach ($items as &$t) {
+            $sch = $t['schedule'] ?? [];
+            if (($sch['type'] ?? '') === 'daily') $t['schedule_label'] = 'Diaria ' . ($sch['time'] ?? '03:00');
+            else $t['schedule_label'] = 'Cada ' . max(1, intval(($sch['seconds'] ?? 3600)/60)) . ' min';
+        }
+        unset($t);
+        out(['ok'=>true,'items'=>$items]);
+    }
+
+    case 'automation_create': {
+        check_csrf_if_present();
+        $name = trim($_POST['name'] ?? 'Nueva tarea');
+        $act = trim($_POST['action'] ?? '');
+        $stype = trim($_POST['schedule_type'] ?? 'interval');
+        if (!in_array($act, ['backup','restart','steam_update','rcon_message'], true)) out(['ok'=>false,'error'=>'Acción no soportada']);
+        if (!in_array($stype, ['interval','daily'], true)) out(['ok'=>false,'error'=>'Programación inválida']);
+        $schedule = $stype === 'daily'
+            ? ['type'=>'daily','time'=>preg_match('/^\\d{2}:\\d{2}$/', $_POST['time'] ?? '') ? $_POST['time'] : '03:00']
+            : ['type'=>'interval','seconds'=>max(60, intval($_POST['minutes'] ?? 60)*60)];
+        $payloadRaw = trim($_POST['payload'] ?? '');
+        $payload = [];
+        if ($act === 'rcon_message') $payload['command'] = $payloadRaw;
+        if ($act === 'restart') { $payload['server_id']=1; $payload['save_before']=true; }
+        if ($act === 'steam_update') $payload['beta']=false;
+        $tasks = ec_tasks();
+        $id = 'task_' . date('YmdHis') . '_' . substr(bin2hex(random_bytes(3)),0,6);
+        $tasks[] = ['id'=>$id,'name'=>$name?:'Nueva tarea','action'=>$act,'enabled'=>true,'schedule'=>$schedule,'payload'=>$payload,'created_at'=>time(),'next_run_ts'=>ec_next_run($schedule),'last_run_ts'=>null,'last_result'=>null,'last_ok'=>null];
+        if (!ec_save_tasks($tasks)) out(['ok'=>false,'error'=>'No se pudo guardar automation_tasks.json']);
+        ec_log('automation','Tarea creada: '.($name?:$id),'success',['task_id'=>$id,'action'=>$act]);
+        out(['ok'=>true,'id'=>$id]);
+    }
+
+    case 'automation_toggle': {
+        $id = trim($_POST['id'] ?? ''); $tasks = ec_tasks(); $found=false; $enabled=false;
+        foreach($tasks as &$t){ if(($t['id']??'')===$id){ $t['enabled']=empty($t['enabled']); $enabled=(bool)$t['enabled']; if($enabled) $t['next_run_ts']=ec_next_run($t['schedule']??[]); $found=true; break; }} unset($t);
+        if(!$found) out(['ok'=>false,'error'=>'Tarea no encontrada']); ec_save_tasks($tasks); ec_log('automation',$enabled?'Tarea activada':'Tarea pausada','info',['task_id'=>$id]); out(['ok'=>true]);
+    }
+
+    case 'automation_delete': {
+        $id = trim($_POST['id'] ?? ''); $tasks = ec_tasks(); $before=count($tasks); $tasks=array_values(array_filter($tasks,fn($t)=>(($t['id']??'')!==$id)));
+        if(count($tasks)===$before) out(['ok'=>false,'error'=>'Tarea no encontrada']); ec_save_tasks($tasks); ec_log('automation','Tarea eliminada','warning',['task_id'=>$id]); out(['ok'=>true]);
     }
 
     case 'schedule_alert': {
