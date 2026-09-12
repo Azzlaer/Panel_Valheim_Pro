@@ -920,21 +920,145 @@ break;
         check_csrf_if_present();
 
         $type = $_POST['type'] ?? '';
-        if (!in_array($type, ['normal','prebeta'], true)) out(['ok'=>false,'error'=>'Tipo inválido']);
-        if (!defined('STEAMCMD_EXE') || !is_file(STEAMCMD_EXE)) out(['ok'=>false,'error'=>'steamcmd.exe no encontrado']);
+        if (!in_array($type, ['normal','prebeta'], true)) {
+            out(['ok'=>false,'error'=>'Tipo de actualización inválido']);
+        }
+
+        if (!defined('STEAMCMD_EXE') || !is_file(STEAMCMD_EXE)) {
+            out(['ok'=>false,'error'=>'steamcmd.exe no encontrado: ' . (defined('STEAMCMD_EXE') ? STEAMCMD_EXE : 'STEAMCMD_EXE no definido')]);
+        }
+
+        if (!defined('SERVER_BASE') || !is_dir(SERVER_BASE)) {
+            out(['ok'=>false,'error'=>'SERVER_BASE no existe o no es un directorio válido']);
+        }
 
         if (isServerRunning()) {
-            out(['ok'=>false,'error'=>'Servidor en ejecución, apágalo antes de actualizar']);
+            out(['ok'=>false,'error'=>'Servidor en ejecución. Debes detenerlo antes de actualizar.']);
         }
 
-        if ($type === 'prebeta') {
-            $cmd = '"' . STEAMCMD_EXE . '" +login anonymous +app_update 896660 -beta public-test -betapassword yesimadebackups validate +quit';
-        } else {
-            $cmd = '"' . STEAMCMD_EXE . '" +login anonymous +app_update 896660 validate +quit';
+        $dataDir = __DIR__ . DIRECTORY_SEPARATOR . 'data';
+        if (!is_dir($dataDir) && !@mkdir($dataDir, 0777, true)) {
+            out(['ok'=>false,'error'=>'No se pudo crear el directorio data']);
         }
 
-        @pclose(@popen('start "ValheimUpdate" cmd /c ' . $cmd, 'r'));
-        out(['ok'=>true]);
+        $statusFile = $dataDir . DIRECTORY_SEPARATOR . 'steam_update_status.json';
+        $jobFile    = $dataDir . DIRECTORY_SEPARATOR . 'steam_update_job.json';
+        $logFile    = $dataDir . DIRECTORY_SEPARATOR . 'steam_update.log';
+        $workerFile = __DIR__ . DIRECTORY_SEPARATOR . 'steam_update_worker.ps1';
+
+        if (!is_file($workerFile)) {
+            out(['ok'=>false,'error'=>'No se encontró steam_update_worker.ps1']);
+        }
+
+        // Evitar lanzar dos actualizaciones simultáneas.
+        if (is_file($statusFile)) {
+            $current = @json_decode(@file_get_contents($statusFile), true);
+            if (is_array($current) && in_array(($current['state'] ?? ''), ['starting','running'], true)) {
+                out(['ok'=>false,'error'=>'Ya existe una actualización de SteamCMD en ejecución']);
+            }
+        }
+
+        $job = [
+            'type'        => $type,
+            'steamcmd'    => STEAMCMD_EXE,
+            'install_dir' => rtrim(SERVER_BASE, '\\/'),
+            'status_file' => $statusFile,
+            'log_file'    => $logFile,
+            'app_id'      => 896660,
+            'created_at'  => time(),
+        ];
+
+        if (@file_put_contents($jobFile, json_encode($job, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), LOCK_EX) === false) {
+            out(['ok'=>false,'error'=>'No se pudo escribir el trabajo de actualización']);
+        }
+
+        @file_put_contents($statusFile, json_encode([
+            'state' => 'starting',
+            'type' => $type,
+            'message' => 'Preparando SteamCMD...',
+            'started_at' => time(),
+            'finished_at' => null,
+            'exit_code' => null,
+            'last_line' => '',
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), LOCK_EX);
+
+        $ps = getenv('SystemRoot')
+            ? getenv('SystemRoot') . '\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'
+            : 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';
+
+        if (!is_file($ps)) {
+            $ps = 'powershell.exe';
+        }
+
+        // Solo pasamos al worker la ruta del JSON. Las rutas con espacios se leen desde ese archivo.
+        $launch = 'start "" /B ' .
+            '"' . $ps . '" -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ' .
+            '"' . $workerFile . '" -JobFile ' . '"' . $jobFile . '"';
+
+        $handle = @popen($launch, 'r');
+        if ($handle === false) {
+            @file_put_contents($statusFile, json_encode([
+                'state' => 'error',
+                'type' => $type,
+                'message' => 'No se pudo iniciar el worker PowerShell',
+                'started_at' => time(),
+                'finished_at' => time(),
+                'exit_code' => null,
+                'last_line' => '',
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), LOCK_EX);
+            out(['ok'=>false,'error'=>'No se pudo iniciar el worker de actualización']);
+        }
+        @pclose($handle);
+
+        if (function_exists('ec_log')) {
+            ec_log('steam_update', 'Actualización SteamCMD iniciada (' . $type . ')', 'info', [
+                'type' => $type,
+                'install_dir' => SERVER_BASE,
+            ]);
+        }
+
+        out([
+            'ok'=>true,
+            'state'=>'starting',
+            'type'=>$type,
+            'msg'=>'Actualización iniciada. El panel seguirá el progreso automáticamente.'
+        ]);
+    }
+
+    case 'steam_update_status': {
+        $statusFile = __DIR__ . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'steam_update_status.json';
+        $logFile    = __DIR__ . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'steam_update.log';
+
+        $status = [
+            'state' => 'idle',
+            'type' => null,
+            'message' => 'Sin actualización activa',
+            'started_at' => null,
+            'finished_at' => null,
+            'exit_code' => null,
+            'last_line' => '',
+        ];
+
+        if (is_file($statusFile)) {
+            $tmp = @json_decode(@file_get_contents($statusFile), true);
+            if (is_array($tmp)) {
+                $status = array_merge($status, $tmp);
+            }
+        }
+
+        $tail = [];
+        if (is_file($logFile) && is_readable($logFile)) {
+            $lines = @file($logFile, FILE_IGNORE_NEW_LINES);
+            if (is_array($lines)) {
+                $tail = array_slice($lines, -25);
+            }
+        }
+
+        out([
+            'ok' => true,
+            'status' => $status,
+            'log_tail' => $tail,
+        ]);
     }
 
     case 'alert_create': {
