@@ -103,6 +103,28 @@ function br_list(): array {
     return $items;
 }
 
+function br_copy_tree(string $src, string $dst): void {
+    if (!is_dir($src)) throw new RuntimeException('Directorio origen inválido');
+    if (!is_dir($dst) && !@mkdir($dst, 0775, true)) {
+        throw new RuntimeException('No se pudo crear directorio destino');
+    }
+    $it = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($src, FilesystemIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::SELF_FIRST
+    );
+    foreach ($it as $item) {
+        $rel = substr($item->getPathname(), strlen($src)+1);
+        $target = $dst . DIRECTORY_SEPARATOR . $rel;
+        if ($item->isDir()) {
+            if (!is_dir($target) && !@mkdir($target,0775,true)) throw new RuntimeException('No se pudo crear carpeta');
+        } else {
+            $parent = dirname($target);
+            if (!is_dir($parent) && !@mkdir($parent,0775,true)) throw new RuntimeException('No se pudo crear carpeta');
+            if (!@copy($item->getPathname(), $target)) throw new RuntimeException('No se pudo copiar archivo');
+        }
+    }
+}
+
 function br_safe_extract(string $zipPath, string $dest): void {
     $zip = new ZipArchive();
     if ($zip->open($zipPath) !== true) throw new RuntimeException('No se pudo abrir el backup');
@@ -150,7 +172,7 @@ function br_restore(string $backupName): array {
             $target = $root . DIRECTORY_SEPARATOR . $world;
             if (is_dir($target)) wm_delete_tree($target);
             if (!@rename($src, $target)) {
-                bm_copy_tree($src, $target);
+                br_copy_tree($src, $target);
             }
         } else {
             foreach (['.fwl','.db','.db.old','.fwl.old','.old'] as $suffix) {
