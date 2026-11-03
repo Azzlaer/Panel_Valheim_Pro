@@ -92,6 +92,7 @@ try {
             mc_out([
                 'ok'=>true,
                 'filename'=>$name,
+                'schema'=>cm_schema(),
                 'values'=>mc_public_values($values),
                 'report'=>$report,
                 'derived'=>$derived,
@@ -135,13 +136,9 @@ try {
                 if(!@copy($configPath,$backup)) throw new RuntimeException('No se pudo respaldar config.php actual');
             }
 
-            $tmp=$configPath.'.new';
-            if(@file_put_contents($tmp,$php,LOCK_EX)===false) throw new RuntimeException('No se pudo escribir config.php temporal');
-            if(PHP_OS_FAMILY==='Windows' && is_file($configPath)){
-                @unlink($configPath);
-            }
-            if(!@rename($tmp,$configPath)){
-                @unlink($tmp);
+            // El backup ya existe; ahora sobrescribimos de forma bloqueada.
+            // Evita el hueco de borrar config.php antes de un rename fallido en Windows.
+            if(@file_put_contents($configPath,$php,LOCK_EX)===false) {
                 throw new RuntimeException('No se pudo reemplazar config.php');
             }
 
