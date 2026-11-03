@@ -271,7 +271,10 @@ function wm_delete_world(string $name): void {
 
 function wm_zip_entry(string $name): array {
     if (!class_exists('ZipArchive')) throw new RuntimeException('ZipArchive no está habilitado');
-    $path = wm_resolve_entry($name);
+    if (!wm_safe_name($name)) throw new RuntimeException('Nombre inválido');
+
+    $root = wm_worlds_dir();
+    $exact = $root . DIRECTORY_SEPARATOR . $name;
     $tmp = tempnam(sys_get_temp_dir(), 'vhworld_');
     if ($tmp === false) throw new RuntimeException('No se pudo crear archivo temporal');
     @unlink($tmp);
@@ -281,10 +284,13 @@ function wm_zip_entry(string $name): array {
     if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
         throw new RuntimeException('No se pudo crear ZIP');
     }
-    if (is_dir($path)) {
-        $base = dirname($path);
+
+    $added = 0;
+    if (is_dir($exact)) {
+        if (!wm_path_inside($exact, $root)) throw new RuntimeException('Ruta fuera de alcance');
+        $base = dirname($exact);
         $it = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($path, FilesystemIterator::SKIP_DOTS),
+            new RecursiveDirectoryIterator($exact, FilesystemIterator::SKIP_DOTS),
             RecursiveIteratorIterator::LEAVES_ONLY
         );
         foreach ($it as $file) {
@@ -292,11 +298,27 @@ function wm_zip_entry(string $name): array {
             $real = $file->getRealPath();
             if (!$real) continue;
             $rel = str_replace('\\', '/', substr($real, strlen($base) + 1));
-            $zip->addFile($real, $rel);
+            if ($zip->addFile($real, $rel)) $added++;
         }
+    } elseif (is_file($exact)) {
+        if (!wm_path_inside($exact, $root)) throw new RuntimeException('Ruta fuera de alcance');
+        if ($zip->addFile($exact, basename($exact))) $added++;
     } else {
-        $zip->addFile($path, basename($path));
+        // Mundo legacy: agrupar todos los archivos asociados al mismo basename.
+        foreach (['.fwl','.db','.db.old','.fwl.old','.old'] as $suffix) {
+            $legacy = $root . DIRECTORY_SEPARATOR . $name . $suffix;
+            if (is_file($legacy) && wm_path_inside($legacy, $root)) {
+                if ($zip->addFile($legacy, basename($legacy))) $added++;
+            }
+        }
     }
+
+    if ($added === 0) {
+        $zip->close();
+        @unlink($zipPath);
+        throw new RuntimeException('No se encontraron archivos para descargar');
+    }
+
     $zip->close();
     return ['path'=>$zipPath,'name'=>$name . '.zip'];
 }
