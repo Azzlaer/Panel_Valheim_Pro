@@ -133,6 +133,8 @@ function cm_parse_import(string $filename, string $content): array {
 function cm_map(array $raw): array {
     $schema=cm_schema(); $aliases=cm_aliases(); $mapped=[]; $unknown=[];
     foreach($raw as $k=>$v){
+        // Contraseñas legacy en texto plano nunca se migran automáticamente.
+        if ($k === 'ADMIN_PASS') { $unknown[$k] = '[LEGACY_PLAINTEXT_SECRET]'; continue; }
         $target=$schema[$k]??null ? $k : ($aliases[$k]??null);
         if($target && isset($schema[$target])) {
             if(!array_key_exists($target,$mapped)) $mapped[$target]=$v;
