@@ -264,7 +264,7 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
                 <a href="#" class="nav-link active" data-section="pages/overview">🏠 Overview</a>
                 <a href="#" class="nav-link" data-section="pages/servers">🖥️ Servidores</a>
                 <a href="#" class="nav-link" data-section="pages/backups">🗂️ Respaldos</a>
-                <a href="#" class="nav-link" data-section="pages/maps">🗺️ Mapas</a>
+                <a href="#" class="nav-link" data-section="pages/maps">🌍 Mundos</a>
                 <a href="#" class="nav-link" data-section="pages/plugins">📊 Mods</a>
                 <a href="#" class="nav-link" data-section="pages/cfg">⚙️ Archivos CFG</a>
                 <a href="#" class="nav-link" data-section="pages/lists">📂 Listas</a>
