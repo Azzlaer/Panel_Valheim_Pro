@@ -1,0 +1,29 @@
+# Local secrets / machine-specific config
+config.local.php
+.env
+.env.*
+
+# Runtime state
+server.pid
+data/events.json
+data/players_live.json
+data/players_history.json
+data/server_state.json
+data/steam_update_status.json
+data/steam_update_job.json
+data/steam_update.log
+data/thunderstore_valheim_packages.json
+data/thunderstore_mods.json
+data/bepinex_state.json
+
+# Generated archives
+backups/**/*.zip
+*.zip
+*.bak
+*.log
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
