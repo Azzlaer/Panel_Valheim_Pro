@@ -29,7 +29,7 @@ function tm_package_index(bool $refresh=false): array {
 }
 
 function tm_search(string $q, int $limit=40): array {
-    $q=mb_strtolower(trim($q)); if($q==='') return [];
+    $lower = function(string $s): string { return function_exists('mb_strtolower') ? mb_strtolower($s) : strtolower($s); };\n    $q=$lower(trim($q)); if($q==='') return [];
     $reg=tm_registry(); $out=[];
     foreach(tm_package_index() as $p){
         $owner=(string)($p['owner']??$p['namespace']??'');
@@ -38,7 +38,7 @@ function tm_search(string $q, int $limit=40): array {
         if(!is_array($versions)||!$versions) continue;
         $latest=$versions[0];
         $desc=(string)($latest['description']??$p['description']??'');
-        $hay=mb_strtolower($owner.' '.$name.' '.$desc);
+        $hay=$lower($owner.' '.$name.' '.$desc);
         if(!str_contains($hay,$q)) continue;
         $key=$owner.'-'.$name;
         $out[]=[
