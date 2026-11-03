@@ -90,7 +90,10 @@ function tm_copy_package(string $extract,string $root,array &$files): void {
         if($item->isDir()){if(!is_dir($target))@mkdir($target,0775,true);continue;}
         $parent=dirname($target);if(!is_dir($parent)&&!@mkdir($parent,0775,true))throw new RuntimeException('No se pudo crear '.$parent);
         if(!@copy($item->getPathname(),$target))throw new RuntimeException('No se pudo copiar '.$rel);
-        $files[]=str_replace('\\','/',$rel);
+        $files[]=[
+            'path'=>str_replace('\\','/',$rel),
+            'sha256'=>hash_file('sha256',$target) ?: null
+        ];
     }
 }
 
@@ -140,10 +143,23 @@ function tm_uninstall(string $ns,string $name): array {
     if(bm_server_running()) throw new RuntimeException('Detén Valheim antes de desinstalar mods');
     $reg=tm_registry();$key=$ns.'-'.$name;if(empty($reg[$key]))throw new RuntimeException('Mod no registrado como instalado');
     $root=bm_server_root();$removed=0;
-    foreach(($reg[$key]['files']??[]) as $rel){
-        $rel=str_replace(['..','/'],['',DIRECTORY_SEPARATOR],(string)$rel);
+    foreach(($reg[$key]['files']??[]) as $entry){
+        if(is_array($entry)){
+            $rel=(string)($entry['path']??'');
+            $expected=(string)($entry['sha256']??'');
+        }else{
+            // Compatibilidad con registros iniciales.
+            $rel=(string)$entry;
+            $expected='';
+        }
+        if($rel===''||str_contains($rel,'..')) continue;
+        $rel=str_replace('/',DIRECTORY_SEPARATOR,$rel);
         $p=$root.DIRECTORY_SEPARATOR.$rel;
-        if(is_file($p)&&@unlink($p))$removed++;
+        if(!is_file($p)) continue;
+
+        // Si otro mod o el usuario modificó el archivo, no lo borres silenciosamente.
+        if($expected!=='' && (hash_file('sha256',$p) ?: '') !== $expected) continue;
+        if(@unlink($p)) $removed++;
     }
     unset($reg[$key]);tm_save_registry($reg);
     return ['removed'=>$removed];
