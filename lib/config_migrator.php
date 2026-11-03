@@ -135,7 +135,7 @@ function cm_map(array $raw): array {
     foreach($raw as $k=>$v){
         // Contraseñas legacy en texto plano nunca se migran automáticamente.
         if ($k === 'ADMIN_PASS') { $unknown[$k] = '[LEGACY_PLAINTEXT_SECRET]'; continue; }
-        $target=$schema[$k]??null ? $k : ($aliases[$k]??null);
+        $target = array_key_exists($k, $schema) ? $k : ($aliases[$k] ?? null);
         if($target && isset($schema[$target])) {
             if(!array_key_exists($target,$mapped)) $mapped[$target]=$v;
         } else {
