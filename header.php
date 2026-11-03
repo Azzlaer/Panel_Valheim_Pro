@@ -263,13 +263,13 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
             <div class="nav flex-column nav-pills">
                 <a href="#" class="nav-link active" data-section="pages/overview">🏠 Overview</a>
                 <a href="#" class="nav-link" data-section="pages/servers">🖥️ Servidores</a>
-                <a href="#" class="nav-link" data-section="pages/backups">🗂️ Respaldos</a>
+                <a href="#" class="nav-link" data-section="pages/backups">🗂️ Respaldos</a>\n                <a href="#" class="nav-link" data-section="pages/world_create">🌱 Crear Mundo</a>
                 <a href="#" class="nav-link" data-section="pages/maps">🌍 Mundos</a>
-                <a href="#" class="nav-link" data-section="pages/plugins">📊 Mods</a>
+                <a href="#" class="nav-link" data-section="pages/bepinex">🧩 BepInEx</a>\n                <a href="#" class="nav-link" data-section="pages/mod_market">🛒 Thunderstore</a>\n                <a href="#" class="nav-link" data-section="pages/plugins">📊 Mods Locales</a>
                 <a href="#" class="nav-link" data-section="pages/cfg">⚙️ Archivos CFG</a>
-                <a href="#" class="nav-link" data-section="pages/lists">📂 Listas</a>
+                <a href="#" class="nav-link" data-section="pages/lists">🛡️ Permisos</a>
                 <a href="#" class="nav-link" data-section="pages/logs">📜 Logs</a>
-                <a href="#" class="nav-link" data-section="pages/update">🔄 Actualización</a>
+                <a href="#" class="nav-link" data-section="pages/update">🔄 Actualización</a>\n                <a href="#" class="nav-link" data-section="pages/network">🌐 Red & Crossplay</a>\n                <a href="#" class="nav-link" data-section="pages/platform">🐧 Linux & Docker</a>
                 <a href="#" class="nav-link" data-section="pages/rcon">🖥️ RCON</a>
                 <a href="#" class="nav-link" data-section="pages/players">👥 Players Live</a>
                 <!-- <a href="#" class="nav-link" data-section="pages/crons">⏱️ Cron Jobs</a> -->
@@ -278,7 +278,7 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
                 <a href="#" class="nav-link" data-section="pages/automation">⏱️ Automatización</a>
                 <a href="#" class="nav-link" data-section="pages/events">📡 Eventos</a>
                 <a href="#" class="nav-link" data-section="pages/health">🩺 Health Center</a>
-                <a href="#" class="nav-link" data-section="pages/settings">🎛️ Configuración</a>
+                <a href="#" class="nav-link" data-section="pages/settings">🎛️ Configuración</a>\n                <a href="#" class="nav-link" data-section="pages/migration">🧭 Migración</a>
                 <a href="#" class="nav-link" data-section="pages/soporte">🆘 Soporte</a>
                 <a href="logout.php" class="nav-link text-danger">🚪 Cerrar Sesión</a>
             </div>
