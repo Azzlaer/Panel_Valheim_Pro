@@ -20,20 +20,30 @@ try{
    $presets=['normal','casual','easy','hard','hardcore','immersive','hammer'];if(!in_array($preset,$presets,true))throw new RuntimeException('Preset inválido');
    sp_set_arg('world',$name,true);
    sp_set_arg('preset',$preset,false);
+
+   // Un mundo nuevo no debe heredar modifiers/setkeys del mundo anterior.
+   $servers=sp_servers();$params=(string)($servers[0]['params']??'');
+   foreach(['combat','deathpenalty','resources','raids','portals'] as $m){
+     $params=preg_replace('/(?:^|\s)-modifier\s+'.preg_quote($m,'/').'\s+\S+/i','',$params);
+   }
+   foreach(['nobuildcost','playerevents','passivemobs','nomap'] as $key){
+     $params=preg_replace('/(?:^|\s)-setkey\s+'.preg_quote($key,'/').'(?=\s|$)/i','',$params);
+   }
+   $servers[0]['params']=trim(preg_replace('/\s+/',' ',$params));sp_save($servers);
+
    foreach(['combat','deathpenalty','resources','raids','portals'] as $m){
      $v=trim((string)($_POST[$m]??'')); if($v!==''){
-       // remove existing modifier pair of same key first
        $servers=sp_servers();$params=(string)($servers[0]['params']??'');
-       $params=preg_replace('/(?:^|\s)-modifier\s+'.preg_quote($m,'/').'\s+\S+/i','',$params);
-       $params=trim(preg_replace('/\s+/',' ',$params)).' -modifier '.$m.' '.$v;
-       $servers[0]['params']=trim($params);sp_save($servers);
+       $params=trim($params).' -modifier '.$m.' '.$v;
+       $servers[0]['params']=trim(preg_replace('/\s+/',' ',$params));sp_save($servers);
      }
    }
    foreach(['nobuildcost','playerevents','passivemobs','nomap'] as $key){
-     $servers=sp_servers();$params=(string)($servers[0]['params']??'');
-     $params=preg_replace('/(?:^|\s)-setkey\s+'.preg_quote($key,'/').'(?=\s|$)/i','',$params);
-     if(!empty($_POST['key_'.$key]))$params=trim($params).' -setkey '.$key;
-     $servers[0]['params']=trim(preg_replace('/\s+/',' ',$params));sp_save($servers);
+     if(!empty($_POST['key_'.$key])){
+       $servers=sp_servers();$params=(string)($servers[0]['params']??'');
+       $params=trim($params).' -setkey '.$key;
+       $servers[0]['params']=trim(preg_replace('/\s+/',' ',$params));sp_save($servers);
+     }
    }
    if(function_exists('ec_log'))ec_log('world','Mundo preparado: '.$name,'success',['preset'=>$preset]);
    wc_out(['ok'=>true,'msg'=>'Mundo preparado. Inicia el servidor para que Valheim genere su estructura.','world'=>$name]);
