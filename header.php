@@ -278,7 +278,7 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
                 <a href="#" class="nav-link" data-section="pages/automation">⏱️ Automatización</a>
                 <a href="#" class="nav-link" data-section="pages/events">📡 Eventos</a>
                 <a href="#" class="nav-link" data-section="pages/health">🩺 Health Center</a>
-                <a href="#" class="nav-link" data-section="pages/settings">🎛️ Configuración</a>
+                <a href="#" class="nav-link" data-section="pages/settings">🎛️ Configuración</a>\n                <a href="#" class="nav-link" data-section="pages/migration">🧭 Migración</a>
                 <a href="#" class="nav-link" data-section="pages/soporte">🆘 Soporte</a>
                 <a href="logout.php" class="nav-link text-danger">🚪 Cerrar Sesión</a>
             </div>
