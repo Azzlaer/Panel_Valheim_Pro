@@ -220,8 +220,8 @@ function cm_render_config(array $v, ?string $adminPassword=null): string {
         else $lines[]="define('$k', ".var_export((string)$val,true).");";
     }
     $lines[]="define('SERVERS_JSON', __DIR__ . DIRECTORY_SEPARATOR . 'servers.json');";
-    $lines[]="\$LISTS = ['adminlist.txt'=>'👑 Administradores','bannedlist.txt'=>'🚫 Baneados','permittedlist.txt'=>'✅ Permitidos'];";
-    $lines[]="if (session_status() === PHP_SESSION_NONE) session_start();";
-    $lines[]="if (empty(\$_SESSION['csrf_token'])) \$_SESSION['csrf_token']=bin2hex(random_bytes(32));";
+    $lines[] = '$LISTS = [\'adminlist.txt\'=>\'👑 Administradores\',\'bannedlist.txt\'=>\'🚫 Baneados\',\'permittedlist.txt\'=>\'✅ Permitidos\'];';
+    $lines[] = 'if (session_status() === PHP_SESSION_NONE) session_start();';
+    $lines[] = 'if (empty($_SESSION[\'csrf_token\'])) $_SESSION[\'csrf_token\']=bin2hex(random_bytes(32));';
     return implode(PHP_EOL,$lines).PHP_EOL;
 }
