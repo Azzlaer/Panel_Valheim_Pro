@@ -8,9 +8,17 @@ function tm_csrf():void{$t=$_POST['csrf']??'';if(empty($_SESSION['csrf_token'])|
 function tm_evt(string $m,string $l='info',array $x=[]):void{if(function_exists('ec_log'))ec_log('mods',$m,$l,$x);}
 $a=$_GET['action']??$_POST['action']??'installed';
 try{
- if($a==='search'){tm_out(['ok'=>true,'items'=>tm_search((string)($_GET['q']??''),40)]);}
+ if($a==='search'){
+   $q=trim((string)($_GET['q']??''));
+   $ordering=trim((string)($_GET['ordering']??'last-updated'));
+   if($q==='')tm_out(['ok'=>true,'items'=>[]]);
+   tm_out(['ok'=>true,'items'=>tm_search($q,15,$ordering)]);
+ }
  if($a==='installed'){tm_out(['ok'=>true,'items'=>tm_installed_with_updates(),'bepinex'=>bm_installed_info(),'server_running'=>bm_server_running()]);}
- if($a==='refresh_index'){tm_csrf();$d=tm_package_index(true);tm_out(['ok'=>true,'packages'=>count($d)]);}
+ if($a==='discover'){
+   $ordering=trim((string)($_GET['ordering']??'most-downloaded'));
+   tm_out(['ok'=>true,'items'=>tm_discover($ordering,10),'ordering'=>$ordering]);
+ }
  if($a==='install'){
    tm_csrf();$ns=trim((string)($_POST['namespace']??''));$name=trim((string)($_POST['name']??''));$version=trim((string)($_POST['version']??''));$seen=[];$r=tm_install($ns,$name,$version!==''?$version:null,$seen);tm_evt('Mod instalado/actualizado: '.$ns.'/'.$name,'success',['version'=>$r['version']??$version]);tm_out(['ok'=>true,'item'=>$r]);
  }
