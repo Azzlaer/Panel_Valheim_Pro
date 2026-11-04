@@ -7,5 +7,5 @@
     "backup_retention": 15,
     "auto_refresh_seconds": 10,
     "show_system_status": true,
-    "version": "3.2.0-alpha"
+    "version": "3.2.1-alpha"
 }
