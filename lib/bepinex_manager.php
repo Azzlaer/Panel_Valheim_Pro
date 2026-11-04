@@ -114,10 +114,10 @@ function bm_detect_dll_version(): ?string {
     if (!is_file($dll)) return null;
 
     if (PHP_OS_FAMILY === 'Windows') {
-        $safe = str_replace("'", "''", $dll);
-        $cmd = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "(Get-Item -LiteralPath ''' . $safe . ''').VersionInfo.FileVersion"';
+        $ps = "(Get-Item -LiteralPath " . escapeshellarg($dll) . ").VersionInfo.FileVersion";
+        $cmd = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ' . escapeshellarg($ps);
         $out = trim((string)@shell_exec($cmd));
-        if ($out !== '') return preg_replace('/\s+.*/', '', $out);
+        if ($out !== '') return preg_replace('/\\s+.*/', '', $out);
     }
 
     return null;
