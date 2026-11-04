@@ -1,65 +1,147 @@
 <?php
 require_once __DIR__ . '/bepinex_manager.php';
 
-const TM_PACKAGE_LIST = 'https://thunderstore.io/c/valheim/api/v1/package/';
 const TM_PACKAGE_API  = 'https://thunderstore.io/api/experimental/package/';
+const TM_BROWSE_URL   = 'https://thunderstore.io/c/valheim/';
 
-function tm_cache_file(): string { return bm_data_dir() . DIRECTORY_SEPARATOR . 'thunderstore_valheim_packages.json'; }
-function tm_registry_file(): string { return bm_data_dir() . DIRECTORY_SEPARATOR . 'thunderstore_mods.json'; }
+function tm_registry_file(): string {
+    return bm_data_dir() . DIRECTORY_SEPARATOR . 'thunderstore_mods.json';
+}
 
 function tm_registry(): array {
-    $f=tm_registry_file(); if(!is_file($f)) return [];
-    $d=json_decode((string)file_get_contents($f),true); return is_array($d)?$d:[];
+    $f = tm_registry_file();
+    if (!is_file($f)) return [];
+    $d = json_decode((string)file_get_contents($f), true);
+    return is_array($d) ? $d : [];
 }
+
 function tm_save_registry(array $d): void {
-    if(@file_put_contents(tm_registry_file(),json_encode($d,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE),LOCK_EX)===false)
+    if (@file_put_contents(
+        tm_registry_file(),
+        json_encode($d, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+        LOCK_EX
+    ) === false) {
         throw new RuntimeException('No se pudo guardar registro de mods');
-}
-
-function tm_package_index(bool $refresh=false): array {
-    $cache=tm_cache_file();
-    if(!$refresh && is_file($cache) && filemtime($cache)>time()-1800){
-        $d=json_decode((string)file_get_contents($cache),true); if(is_array($d)) return $d;
     }
-    $raw=bm_http_get(TM_PACKAGE_LIST,120);
-    $d=json_decode($raw,true);
-    if(!is_array($d)) throw new RuntimeException('Índice Thunderstore inválido');
-    @file_put_contents($cache,$raw,LOCK_EX);
-    return $d;
 }
 
-function tm_search(string $q, int $limit=40): array {
-    $lower = function(string $s): string { return function_exists('mb_strtolower') ? mb_strtolower($s) : strtolower($s); };
-    $q=$lower(trim($q)); if($q==='') return [];
-    $reg=tm_registry(); $out=[];
-    foreach(tm_package_index() as $p){
-        $owner=(string)($p['owner']??$p['namespace']??'');
-        $name=(string)($p['name']??'');
-        $versions=$p['versions']??[];
-        if(!is_array($versions)||!$versions) continue;
-        $latest=$versions[0];
-        $desc=(string)($latest['description']??$p['description']??'');
-        $hay=$lower($owner.' '.$name.' '.$desc);
-        if(!str_contains($hay,$q)) continue;
-        $key=$owner.'-'.$name;
-        $out[]=[
-            'namespace'=>$owner,'name'=>$name,'key'=>$key,
-            'description'=>$desc,
-            'version'=>(string)($latest['version_number']??''),
-            'downloads'=>(int)($latest['downloads']??0),
-            'download_url'=>(string)($latest['download_url']??''),
-            'dependencies'=>$latest['dependencies']??[],
-            'installed_version'=>$reg[$key]['version']??null,
-            'deprecated'=>(bool)($p['is_deprecated']??false),
+/**
+ * Fetch a single Thunderstore browse/search page.
+ * This intentionally avoids /api/v1/package/, which returns the entire
+ * Valheim catalog and can exhaust PHP memory.
+ */
+function tm_browse_page(string $query = '', string $ordering = 'last-updated'): string {
+    $allowed = ['last-updated', 'most-downloaded', 'top-rated'];
+    if (!in_array($ordering, $allowed, true)) $ordering = 'last-updated';
+
+    $params = ['ordering' => $ordering, 'section' => 'mods'];
+    if (trim($query) !== '') $params['q'] = trim($query);
+
+    $url = TM_BROWSE_URL . '?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986);
+    return bm_http_get($url, 30);
+}
+
+/**
+ * Extract package namespace/name links from a single Thunderstore HTML page.
+ * Only package links are retained and duplicates are removed.
+ */
+function tm_extract_package_refs(string $html, int $limit = 20): array {
+    $refs = [];
+    if (!preg_match_all(
+        '#href=["\\\'](?:https://(?:old\\.)?thunderstore\\.io)?/c/valheim/p/([^/"\\\']+)/([^/"\\\']+)/?["\\\']#i',
+        $html,
+        $matches,
+        PREG_SET_ORDER
+    )) {
+        return [];
+    }
+
+    foreach ($matches as $m) {
+        $ns = rawurldecode((string)$m[1]);
+        $name = rawurldecode((string)$m[2]);
+        $key = strtolower($ns . '/' . $name);
+        if (isset($refs[$key])) continue;
+        $refs[$key] = ['namespace' => $ns, 'name' => $name];
+        if (count($refs) >= $limit) break;
+    }
+    return array_values($refs);
+}
+
+function tm_result_from_ref(array $ref, array $registry): ?array {
+    try {
+        $meta = tm_package((string)$ref['namespace'], (string)$ref['name']);
+        $v = $meta['version'];
+        $p = $meta['package'];
+        $ns = (string)($v['namespace'] ?? $ref['namespace']);
+        $name = (string)($v['name'] ?? $ref['name']);
+        $key = $ns . '-' . $name;
+
+        return [
+            'namespace' => $ns,
+            'name' => $name,
+            'key' => $key,
+            'description' => (string)($v['description'] ?? $p['description'] ?? ''),
+            'version' => (string)($v['version_number'] ?? ''),
+            'downloads' => (int)($v['downloads'] ?? $p['downloads'] ?? 0),
+            'dependencies' => is_array($v['dependencies'] ?? null) ? $v['dependencies'] : [],
+            'installed_version' => $registry[$key]['version'] ?? null,
+            'deprecated' => (bool)($p['is_deprecated'] ?? false),
+            'page_url' => 'https://thunderstore.io/c/valheim/p/' . rawurlencode($ns) . '/' . rawurlencode($name) . '/',
         ];
-        if(count($out)>=$limit) break;
+    } catch (Throwable $e) {
+        return null;
+    }
+}
+
+/**
+ * Search only one Thunderstore result page, then fetch metadata for the
+ * limited visible package refs. No full catalog is downloaded or decoded.
+ */
+function tm_search(string $q, int $limit = 15, string $ordering = 'last-updated'): array {
+    $q = trim($q);
+    if ($q === '') return [];
+
+    $html = tm_browse_page($q, $ordering);
+    $refs = tm_extract_package_refs($html, max($limit + 4, $limit));
+    $registry = tm_registry();
+    $out = [];
+
+    foreach ($refs as $ref) {
+        $item = tm_result_from_ref($ref, $registry);
+        if (!$item || $item['deprecated']) continue;
+        $out[] = $item;
+        if (count($out) >= $limit) break;
+    }
+    return $out;
+}
+
+/**
+ * Lightweight discovery lists: top downloaded, top rated or recently updated.
+ * Only one Thunderstore page is fetched and at most $limit package metadata
+ * calls are made.
+ */
+function tm_discover(string $ordering = 'most-downloaded', int $limit = 10): array {
+    $allowed = ['most-downloaded', 'top-rated', 'last-updated'];
+    if (!in_array($ordering, $allowed, true)) $ordering = 'most-downloaded';
+    $limit = max(1, min(10, $limit));
+
+    $html = tm_browse_page('', $ordering);
+    $refs = tm_extract_package_refs($html, $limit + 4);
+    $registry = tm_registry();
+    $out = [];
+
+    foreach ($refs as $ref) {
+        $item = tm_result_from_ref($ref, $registry);
+        if (!$item || $item['deprecated']) continue;
+        $out[] = $item;
+        if (count($out) >= $limit) break;
     }
     return $out;
 }
 
 function tm_package(string $ns,string $name,?string $version=null): array {
     $ns=trim($ns);$name=trim($name);
-    if(!preg_match('/^[A-Za-z0-9_]+$/',$ns)||!preg_match('/^[A-Za-z0-9_]+$/',$name)) throw new RuntimeException('Identificador Thunderstore inválido');
+    if(!preg_match('/^[A-Za-z0-9_-]+$/',$ns)||!preg_match('/^[A-Za-z0-9_-]+$/',$name)) throw new RuntimeException('Identificador Thunderstore inválido');
     $url=TM_PACKAGE_API.rawurlencode($ns).'/'.rawurlencode($name).'/'.($version?rawurlencode($version).'/':'');
     $d=json_decode(bm_http_get($url,45),true);
     if(!is_array($d)) throw new RuntimeException('Metadata Thunderstore inválida');
