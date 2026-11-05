@@ -54,8 +54,14 @@ $csrf = $_SESSION['csrf_token'] ?? '';
             <div class="card vc-card h-100">
                 <div class="card-body">
                     <div class="vc-label mb-3">Steam</div>
-                    <div class="vc-sub">Build disponible · rama public</div>
+                    <div class="vc-sub">Build disponible · rama consultada</div>
                     <div id="vcSteamBuild" class="vc-value">—</div>
+
+                    <div class="vc-sub mt-3">Rama comparada</div>
+                    <div id="vcSteamBranch" class="fw-semibold">—</div>
+
+                    <div class="vc-sub mt-3">Build public (referencia)</div>
+                    <div id="vcPublicBuild" class="fw-semibold">—</div>
 
                     <div class="vc-sub mt-3">Estado</div>
                     <div class="mt-2">
@@ -192,6 +198,8 @@ $csrf = $_SESSION['csrf_token'] ?? '';
             renderLocal(j.local || {});
 
             document.getElementById('vcSteamBuild').textContent = j.steam?.buildid || '—';
+            document.getElementById('vcSteamBranch').textContent = j.steam?.branch || j.local?.branch || '—';
+            document.getElementById('vcPublicBuild').textContent = j.steam?.public_buildid || '—';
             document.getElementById('vcSteamError').textContent = j.steam?.ok ? '' : (j.steam?.error || '');
             renderComparison(j.comparison || {});
 
