@@ -171,14 +171,7 @@ function vc_irongate_latest(): array {
         }
 
         $version = (string)$m[1];
-        $url = VC_IRONGATE_NEWS;
-        if (preg_match('#href=["\']([^"\']*patch-' . preg_quote(str_replace('.', '-', $version), '#') . '/?)["\']#i', $html, $link)) {
-            $href = html_entity_decode((string)$link[1], ENT_QUOTES | ENT_HTML5);
-            if (str_starts_with($href, 'http')) $url = $href;
-            elseif (str_starts_with($href, '/')) $url = 'https://valheim.com' . $href;
-        }
-
-        return ['ok'=>true,'version'=>$version,'url'=>$url,'error'=>null];
+        return ['ok'=>true,'version'=>$version,'url'=>VC_IRONGATE_NEWS,'error'=>null];
     } catch (Throwable $e) {
         return ['ok'=>false,'version'=>null,'url'=>VC_IRONGATE_NEWS,'error'=>$e->getMessage()];
     }
