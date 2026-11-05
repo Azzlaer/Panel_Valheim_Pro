@@ -9,8 +9,9 @@ function net_firewall_info():array{
  $out=['windows'=>PHP_OS_FAMILY==='Windows','rule_found'=>null,'details'=>null];
  if(PHP_OS_FAMILY!=='Windows'||$exe==='')return $out;
  $safe=str_replace("'","''",$exe);
- $ps="$f=Get-NetFirewallApplicationFilter -ErrorAction SilentlyContinue | Where-Object { $_.Program -eq '$safe' }; if($f){'FOUND'}";
- $r=trim((string)@shell_exec('powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "'.$ps.'"'));
+ $ps = '$filters = Get-NetFirewallApplicationFilter -ErrorAction SilentlyContinue | Where-Object { $_.Program -eq \'' . $safe . '\' }; if ($filters) { Write-Output \'FOUND\' }';
+ $cmd = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ' . escapeshellarg($ps);
+ $r=trim((string)@shell_exec($cmd));
  $out['rule_found']=$r==='FOUND';
  return $out;
 }
