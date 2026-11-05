@@ -33,9 +33,9 @@ try {
         }
 
         $local = vc_local_info();
-        $steam = vc_remote_steam();
+        $steam = vc_remote_steam($local['branch'] ?? 'public');
         $iron = vc_irongate_latest();
-        $compare = vc_compare($local['buildid'] ?? null, $steam['buildid'] ?? null);
+        $compare = vc_compare($local['buildid'] ?? null, $steam['buildid'] ?? null, $steam['branch'] ?? ($local['branch'] ?? null));
 
         vc_api_out([
             'ok'=>true,
