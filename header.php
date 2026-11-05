@@ -498,6 +498,7 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
                         <a href="#" class="nav-link" data-section="pages/players"><span class="menu-icon">👥</span><span class="menu-text">Players Live</span></a>
                         <a href="#" class="nav-link" data-section="pages/logs"><span class="menu-icon">📜</span><span class="menu-text">Logs</span></a>
                         <a href="#" class="nav-link" data-section="pages/network"><span class="menu-icon">🌐</span><span class="menu-text">Red & Crossplay</span></a>
+                        <a href="#" class="nav-link" data-section="pages/version_check"><span class="menu-icon">🧾</span><span class="menu-text">Versiones</span></a>
                         <a href="#" class="nav-link" data-section="pages/update"><span class="menu-icon">🔄</span><span class="menu-text">Actualización</span></a>
                     </div></div>
                 </div>
