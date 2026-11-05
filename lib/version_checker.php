@@ -85,22 +85,66 @@ function vc_steamcmd_exe(): ?string {
     return null;
 }
 
-function vc_parse_public_build(string $output): ?string {
-    $pos = stripos($output, '"public"');
-    if ($pos === false) $pos = stripos($output, 'public');
+function vc_kv_block(string $text, string $key, int $offset=0): ?string {
+    $patterns = [
+        '"' . $key . '"',
+        $key,
+    ];
+
+    $pos = false;
+    foreach ($patterns as $needle) {
+        $pos = stripos($text, $needle, $offset);
+        if ($pos !== false) break;
+    }
     if ($pos === false) return null;
 
-    $slice = substr($output, $pos, 2500);
-    if (preg_match('/"buildid"\s+"?(\d+)"?/i', $slice, $m)) {
-        return (string)$m[1];
+    $open = strpos($text, '{', $pos);
+    if ($open === false) return null;
+
+    $depth = 0;
+    $len = strlen($text);
+    for ($i=$open; $i<$len; $i++) {
+        if ($text[$i] === '{') $depth++;
+        elseif ($text[$i] === '}') {
+            $depth--;
+            if ($depth === 0) return substr($text, $open + 1, $i - $open - 1);
+        }
     }
     return null;
 }
 
-function vc_remote_steam(): array {
+function vc_parse_branch_builds(string $output): array {
+    $branchesBlock = vc_kv_block($output, 'branches');
+    if ($branchesBlock === null) return [];
+
+    $builds = [];
+    if (preg_match_all('/"([^"]+)"\\s*\\{([^{}]*(?:\\{[^{}]*\\}[^{}]*)*)\\}/s', $branchesBlock, $matches, PREG_SET_ORDER)) {
+        foreach ($matches as $m) {
+            $branch = trim((string)$m[1]);
+            $block = (string)$m[2];
+            if (preg_match('/"buildid"\\s+"?(\\d+)"?/i', $block, $b)) {
+                $builds[$branch] = (string)$b[1];
+            }
+        }
+    }
+
+    // Fallback robusto para bloques simples/nested: buscar cada rama conocida
+    // dentro del bloque branches y aislarla mediante balanceo de llaves.
+    $known = ['public','public-test','default_old','default_pre1_0','default_preal','default_prebw','default_precta','default_preml'];
+    foreach ($known as $branch) {
+        if (isset($builds[$branch])) continue;
+        $block = vc_kv_block($branchesBlock, $branch);
+        if ($block !== null && preg_match('/"buildid"\\s+"?(\\d+)"?/i', $block, $b)) {
+            $builds[$branch] = (string)$b[1];
+        }
+    }
+    return $builds;
+}
+
+function vc_remote_steam(?string $preferredBranch=null): array {
     $exe = vc_steamcmd_exe();
     if ($exe === null) {
-        return ['ok'=>false,'buildid'=>null,'error'=>'SteamCMD no fue encontrado en STEAMCMD_EXE.'];
+        return ['ok'=>false,'buildid'=>null,'branch'=>null,'public_buildid'=>null,'branches'=>[],'error'=>'SteamCMD no fue encontrado en STEAMCMD_EXE.'];
     }
 
     @set_time_limit(60);
@@ -114,19 +158,53 @@ function vc_remote_steam(): array {
 
     $output = (string)@shell_exec($cmd);
     if (trim($output) === '') {
-        return ['ok'=>false,'buildid'=>null,'error'=>'SteamCMD no devolvió información.'];
+        return ['ok'=>false,'buildid'=>null,'branch'=>null,'public_buildid'=>null,'branches'=>[],'error'=>'SteamCMD no devolvió información.'];
     }
 
-    $build = vc_parse_public_build($output);
-    if ($build === null) {
+    $branches = vc_parse_branch_builds($output);
+    $publicBuild = $branches['public'] ?? null;
+    $preferredBranch = trim((string)$preferredBranch);
+    if ($preferredBranch === '') $preferredBranch = 'public';
+
+    $selectedBranch = $preferredBranch;
+    $selectedBuild = $branches[$selectedBranch] ?? null;
+
+    // Si Steam no expone la beta instalada al login anonymous, mantenemos
+    // public como referencia pero NO fingimos que es la misma rama.
+    if ($selectedBuild === null && $selectedBranch === 'public') {
+        $selectedBuild = $publicBuild;
+    }
+
+    if ($selectedBuild === null && $publicBuild === null) {
         return [
             'ok'=>false,
             'buildid'=>null,
-            'error'=>'SteamCMD respondió, pero no se pudo identificar el build de la rama public.',
+            'branch'=>$selectedBranch,
+            'public_buildid'=>null,
+            'branches'=>$branches,
+            'error'=>'SteamCMD respondió, pero no se pudieron extraer buildid del bloque branches.',
         ];
     }
 
-    return ['ok'=>true,'buildid'=>$build,'branch'=>'public','error'=>null];
+    if ($selectedBuild === null) {
+        return [
+            'ok'=>false,
+            'buildid'=>null,
+            'branch'=>$selectedBranch,
+            'public_buildid'=>$publicBuild,
+            'branches'=>$branches,
+            'error'=>'Steam no expuso el build de la rama ' . $selectedBranch . ' al consultar anónimamente. Se muestra public solo como referencia.',
+        ];
+    }
+
+    return [
+        'ok'=>true,
+        'buildid'=>$selectedBuild,
+        'branch'=>$selectedBranch,
+        'public_buildid'=>$publicBuild,
+        'branches'=>$branches,
+        'error'=>null,
+    ];
 }
 
 function vc_http_get(string $url, int $timeout=15): string {
@@ -177,7 +255,7 @@ function vc_irongate_latest(): array {
     }
 }
 
-function vc_compare(?string $local, ?string $remote): array {
+function vc_compare(?string $local, ?string $remote, ?string $branch=null): array {
     if (!$local || !$remote) {
         return ['state'=>'unknown','label'=>'No se pudo comparar'];
     }
@@ -187,5 +265,5 @@ function vc_compare(?string $local, ?string $remote): array {
     if (ctype_digit($local) && ctype_digit($remote) && (int)$local < (int)$remote) {
         return ['state'=>'outdated','label'=>'Actualización disponible'];
     }
-    return ['state'=>'different','label'=>'Build diferente a public'];
+    return ['state'=>'different','label'=>'Build diferente a ' . ($branch ?: 'la rama consultada')];
 }
